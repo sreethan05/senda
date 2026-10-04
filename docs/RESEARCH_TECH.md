@@ -34,6 +34,12 @@ import { toViemAccount } from "@category-labs/mera/viem";  // viem ≥2.28; NO e
 - No gas sponsorship/bundler anywhere — senders need MON gas; recipients are gasless via our push model.
 - **Monad quirk: gas charged = declared gasLimit, not gas used.** Always pass explicit, tight `gas` (viem estimates from RPC). Never use MetaMask-style "bump the limit" fallbacks.
 
+### Remaining verified details (completeness addendum)
+- `session.signDigest(digest32)` does **not** prehash — pass the exact 32-byte keccak digest yourself; returns `{compact (64B r||s, low-S), recovery: 0|1}`. `session.end()` permanently zeroes the key copy — call on sign-out (supports `using`/`Symbol.dispose`).
+- Full `MeraErrorCode` union: `PASSKEY_OPERATION_FAILED` (includes user cancel), `CRYPTO_UNAVAILABLE`, `PRF_UNAVAILABLE`, `SESSION_ENDED`, `DECRYPT_FAILED`, `INPUT_INVALID`, `VAULT_FORMAT_INVALID`.
+- Overwrite hazard: re-creating a credential with the same rpId + same user handle destroys the old keypair AND its PRF permanently. Mera generates a fresh random `user.id` per create call, so double-create always *adds* a passkey — but never re-create for the same user handle.
+- Future paths verified: `signAuthorization` (EIP-7702) works via the viem account — delegation to a smart account without changing the passkey flow. Secret-vault API exists (`createSecretVaultWithNewPasskey` etc., AES-256-GCM) — unused by senda v1. React Native path exists (iOS 18+/Android 9+, `react-native-passkey` 3.6.1) — unused, we're PWA.
+
 ---
 
 ## 2. AUSD (Agora Dollar) — live-verified on Monad
@@ -57,7 +63,9 @@ escrow: transfer(claimant, amount)
 ```
 - Reverts arrive as **custom errors**: `ERC20InsufficientAllowance`, `ERC20InsufficientBalance`, `ERC20InvalidReceiver`, `AccountIsFrozen(address)`, `ZeroAmount` (zero-value calls revert!). Decode with viem `decodeErrorResult` + IAgoraDollar ABI; also handle `bool false` defensively.
 - Compliance powers exist (Freezer per-account, Pauser global) — currently off. UI should pre-check `isAccountFrozen()` / `isTransferPaused()` view calls where cheap; escrow must always keep a refund path so nothing can strand.
-- **Skip ERC-3009 in v1** (would need a relayer; recipients are already gasless via push). Everything is mapped if we add it later (~1 day).
+- **Skip ERC-3009 in v1** (would need a relayer; recipients are already gasless via push). Everything mapped for a later ~1-day add: domain `{name: "Agora Dollar", version: "1", chainId, verifyingContract}`, canonical typehashes (`TRANSFER_WITH_AUTHORIZATION 0x7c7c6cdb…`, `RECEIVE_WITH_AUTHORIZATION 0xd099cc98…`), selector `0xe3ee160e`, `nonces(address)` for the nonce.
+- **Upgradeability:** AUSD is an EIP-1967 transparent proxy — Admin can change implementation behavior without notice. Don't hardcode assumptions beyond the verified interface; re-check after any announced upgrade.
+- Balances are `uint248`; **no fee-on-transfer** (Transfer event carries full value); token address dispatches transfer/transferFrom/3009 natively and delegatecalls the rest through fallback — use the repo's ABI, not explorer auto-detection.
 - **Demo funding:** swap USDC → AUSD on Uniswap V4 (Monad) or Curve; AUSD/MON pool is thin. Kraken lists AUSD/USD (verify Monad withdrawals before demo day).
 - **Testnet-first:** full loop can be rehearsed on 10143 with faucet AUSD before touching mainnet.
 
@@ -72,6 +80,8 @@ Nobody cryptographically binds claims to phone numbers — phones hold no keys. 
 - `claim(id, code, sig)`: contract checks `keccak(code) == codeHash` **and** recovers an EIP-712 `Claim(uint256 escrowId, bytes32 codeHash, address payee)` signature where **recovered == msg.sender == payee**.
 - Front-running is fund-neutral (sig binds payee — a copied claim tx reverts `BadSignature` for anyone else). Replay is blocked by single-use flag + escrowId-in-typehash + EIP-712 domain (chainId+contract). Use OZ `ECDSA`/`MessageHashUtils` (rejects high-S/malleable sigs).
 - `expiresAt` + permissionless `reclaim()` so funds can never strand; `cancel()` sender-only.
+- Known, documented limitations: `phoneHash` is brute-forceable if the salt leaks (salt lives in the link only — fine at demo scale; real product would use a server-signed phone attestation, cleanly upgradeable later); a forwarded link = handing someone cash (possession of the secret is the design, same as Linkdrop).
+- Demo tip: set `ttl` ≈ 10 minutes for the live demo so an expired-escrow `reclaim` can be shown on camera.
 - Full contract sketch: [research/SendEscrow-sketch.sol](research/SendEscrow-sketch.sol) — feeds TASK-302 directly. Custom errors only. Reverts pay full declared gas on Monad — keep tests aware.
 
 ---
