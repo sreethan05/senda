@@ -1,16 +1,17 @@
 # Project Memory
 
 ## Current Status
-Planning complete. Documentation written. Awaiting repo init → TASK-101.
+TASK-101 complete — Next.js 16 + React 19 + Tailwind v4 + TS scaffolded, build/lint/typecheck green, pushed to `sreethan05/senda`.
 
 ## Completed
 - Hackathon + track research (6-agent deep research, Oct 4)
 - Product definition, name, corridor decision (senda, US→Nigeria)
 - Full docs set (PRD, ARCHITECTURE, DESIGN, RULES, TASKS, DECISIONS, TEST_PLAN, SECURITY)
-- Local folder `Desktop\senda` created
+- Local folder `Desktop\senda` created; git repo connected to github.com/sreethan05/senda
+- TASK-101 scaffold (Next.js 16.3.8, React 19.2.8, Tailwind 4, TS 5) + typecheck script
 
 ## Current Task
-TASK-101 — init Next.js + TypeScript + Tailwind (once git repo is in place)
+TASK-102 — env handling + chain constants module (`src/lib/config.ts`)
 
 ## Known Issues
 - No public mainnet MON faucet — need to buy/bridge a small amount of MON for gas (TASK-104)
@@ -26,4 +27,4 @@ TASK-101 — init Next.js + TypeScript + Tailwind (once git repo is in place)
 - Mera: npm `@category-labs/mera`, docs `mera.category.xyz`, GitHub `category-labs/mera`
 
 ## Next Step
-Clone/pull the GitHub repo into `Desktop\senda`, then run TASK-101.
+TASK-102, then TASK-103 (Vercel preview — needs user's Vercel login) and TASK-104 (acquire MON for mainnet gas — no faucet exists).
