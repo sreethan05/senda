@@ -9,6 +9,7 @@ Verified against official docs + live on-chain calls, Oct 4 2026. This file is t
 Sources: mera.category.xyz (all pages), github.com/category-labs/mera (source + demos read), docs.monad.xyz/guides/mera, npm registry.
 
 ### Verified API
+> Working reference code: [research/mera-auth-pattern.tsx](research/mera-auth-pattern.tsx) — create/login/derive/sign flow used by Phase 2.
 ```ts
 import {
   createPasskeyWithPrfOutput,   // create: { rp: {id,name}, user: {name, displayName}, prfSalt? }
@@ -71,7 +72,7 @@ Nobody cryptographically binds claims to phone numbers — phones hold no keys. 
 - `claim(id, code, sig)`: contract checks `keccak(code) == codeHash` **and** recovers an EIP-712 `Claim(uint256 escrowId, bytes32 codeHash, address payee)` signature where **recovered == msg.sender == payee**.
 - Front-running is fund-neutral (sig binds payee — a copied claim tx reverts `BadSignature` for anyone else). Replay is blocked by single-use flag + escrowId-in-typehash + EIP-712 domain (chainId+contract). Use OZ `ECDSA`/`MessageHashUtils` (rejects high-S/malleable sigs).
 - `expiresAt` + permissionless `reclaim()` so funds can never strand; `cancel()` sender-only.
-- Full contract sketch (state + 4 functions, OZ 5, CEI) is in the research notes and feeds TASK-302 directly. Custom errors only. Reverts pay full declared gas on Monad — keep tests aware.
+- Full contract sketch: [research/SendEscrow-sketch.sol](research/SendEscrow-sketch.sol) — feeds TASK-302 directly. Custom errors only. Reverts pay full declared gas on Monad — keep tests aware.
 
 ---
 
@@ -90,7 +91,7 @@ Nobody cryptographically binds claims to phone numbers — phones hold no keys. 
 ### Supabase (free tier)
 - 2 active projects, 500 MB DB, 50K MAU. **Free projects pause after 7 days inactivity** — irrelevant during the 8-day sprint; poke it weekly after.
 - New key scheme: `sb_publishable_…` (client, respects RLS) / `sb_secret_…` (server-only, bypasses RLS). `.env`: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY` (never `NEXT_PUBLIC_`).
-- `claims` table SQL + RLS: statuses `pending|claimed|cancelled`, indexes on phone_hash/status, **no anon INSERT/UPDATE/DELETE**, anon reads only through a `security definer` RPC `get_claim_by_escrow(p_escrow_id)` — full SQL captured in research notes (re-run from here at TASK-403).
+- `claims` table SQL + RLS: statuses `pending|claimed|cancelled`, indexes on phone_hash/status, **no anon INSERT/UPDATE/DELETE**, anon reads only through a `security definer` RPC `get_claim_by_escrow(p_escrow_id)` — exact SQL: [research/claims-table.sql](research/claims-table.sql) (run at TASK-403).
 
 ### Vercel (Hobby)
 - 100 deploys/day, 100 GB transfer, 1M function invocations. **Fair-use policy explicitly allows this use** (no contest language; demo must stay fee-free/ad-free — it is).
