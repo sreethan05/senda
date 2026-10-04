@@ -31,3 +31,19 @@
 ## ADR-008 — AUSD only (no multi-stablecoin)
 **Decision:** support AUSD exclusively in v1.
 **Reason:** the bounty specifies AUSD; it's live on Monad with ERC-3009 gasless transfer support; one token = one integration tested well.
+
+## ADR-009 — Claim = 6-digit code + claimant EIP-712 signature (not SMS OTP)
+**Decision:** escrow stores `codeHash`; claim link carries the code; `claim()` requires `keccak(code) == codeHash` AND an EIP-712 signature where recovered == msg.sender == payee. No SMS provider.
+**Reason:** phones hold no keys — every real system (Linkdrop, Umbra) binds to an out-of-band secret + signature. Twilio costs $0.05/verify, can't text unregistered numbers on trial, and is off-chain theater anyway. This design is two-factor on-chain, $0, and front-running fund-neutral. (See RESEARCH_TECH.md §3.)
+
+## ADR-010 — Contract verifies with plain `ecrecover` (no ERC-1271 / P-256 precompile)
+**Decision:** SendEscrow uses OZ ECDSA.recover over an EIP-712 digest.
+**Reason:** verified against Mera source — derived accounts are standard secp256k1 EOAs (PRF → BIP-39 → m/44'/60'/0'/0/0). The P-256 precompile exists on Monad but is unnecessary here; noted as future work if we add smart accounts.
+
+## ADR-011 — Testnet-first loop, mainnet only for the demo take
+**Decision:** build and rehearse the full send→claim loop on Monad testnet (10143) using the AUSD faucet (`requestFunds` mints 10,000 AUSD), then deploy to mainnet (143) for the recorded demo.
+**Reason:** free, unlimited rehearsal of the exact demo path; mainnet tx count and gas spend stay minimal; the EIP-712 domain pins chainId so nothing cross-replays.
+
+## ADR-012 — NGN rate via open.er-api.com, hourly server cache
+**Decision:** server route fetches `https://open.er-api.com/v6/latest/USD` with `revalidate: 3600`; fallback constant 1330 if fetch fails.
+**Reason:** no API key, NGN supported (verified live), Frankfurter lacks NGN, no Monad-native NGN feed exists.

@@ -18,23 +18,23 @@ Supabase PostgreSQL — an **index only**, never a custodian:
 
 ## Money Flow
 ```
-Sender (passkey account)
-   │  1. approve AUSD + depositTo(phoneHash)
+Sender (passkey EOA)
+   │  1. approve AUSD + depositTo(phoneHash, codeHash, amount, ttl)
    ▼
 SendEscrow.sol (Monad 143) ── funds locked
    │
    ├─ 2. app stores {escrowId, phoneHash} in Supabase, renders claim link
-   │
+   │     link carries: /claim/[id]#code=XXXXXX&salt=…   ("SMS" = opening link on phone 2)
    ▼
-Recipient opens link (SMS/WhatsApp)
-   │  3. creates passkey (Mera) → account
+Recipient opens link
+   │  3. creates passkey (Mera) → EOA; signs EIP-712 Claim(escrowId, codeHash, payee)
    ▼
 Recipient account
-   │  4. claim(escrowId) — signature binds claim to recipient phone hash
+   │  4. claim(id, code, sig) — codeHash match + ecrecover(sig) == msg.sender == payee
    ▼
 AUSD released instantly (~1s finality)
 ```
-Cancel: sender can `cancel(escrowId)` before claim → refund.
+Cancel: sender can `cancel(id)` before claim → refund. Expiry: `reclaim(id)` bounces unclaimed funds to sender after `ttl` — nothing can strand. Claim is front-running-fund-neutral (signature binds the payee). Full design rationale: [RESEARCH_TECH.md](RESEARCH_TECH.md) §3.
 
 ## Deployment
 Vercel (preview → production). Contracts deployed to Monad testnet first (`10143`), then mainnet; addresses pinned in `.env`.
