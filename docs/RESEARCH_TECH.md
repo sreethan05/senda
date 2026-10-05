@@ -123,8 +123,21 @@ Nobody cryptographically binds claims to phone numbers — phones hold no keys. 
 |---|---|---|
 | D1 | `ecrecover` over EIP-712 in SendEscrow | Mera accounts are plain EOAs (low-S secp256k1) |
 | D2 | 6-digit claim code (codeHash) + claimant sig | Two-factor claim, $0, no Twilio, front-run neutral |
-| D3 | Skip ERC-3009 in v1 | Relayer burden; recipients already gasless |
+| D3 | Skip ERC-3009 in v1 → **REVISED Oct 5: promoted to TASK-306** (Agora's own mechanism, sponsor-recognizable; see PITCH.md §3) | — |
 | D4 | Testnet-first full loop (faucet AUSD = 10k/call) | Free rehearsal before mainnet demo |
 | D5 | `open.er-api.com` for NGN | No key, NGN live, cacheable |
 | D6 | Supabase RPC-read instead of blanket SELECT policy | No table enumeration by anon |
 | D7 | Pin `@category-labs/mera@0.2.0`, viem-only stack | Preview lib, no ethers adapter exists |
+
+## 7. Aurora Intents (stretch bounty $5K — only if main demo frozen by day 6)
+- **Widget-first:** `@aurora-is-near/intents-swap-widget` (or `-standalone`), lock `allowedTargetChainsList: ['monad']`, `sendAddress` = user's Monad address. Docs: docs.intents.aurora.dev; keys self-serve at studio.aurora.dev (no approval). Intents Deposits PDA API (`https://intents-api.aurora.dev/api/`, appKey in path) = "your dedicated Monad deposit address" UX (~1 extra day).
+- **Live-verified Oct 5:** /v0/tokens returns Monad with exactly 3 assets (MON, USDT0, USDC `0x7547…`) — **AUSD is NOT an output**; fund USDC → swap to AUSD in-app (Kuru/Agora rails). ⚠️ Monad pairs were "not available" for quoting unauthenticated post-exploit — verify with a real Studio key BEFORE committing to the stretch. **No testnet exists** — rehearse with ~$10 mainnet.
+- Demo story for Aurora: chainless funding (show Base/Solana source), Shield Incident API gating (we read the incident report), PDA sticky address. Prize is $5K **split across 3 winners**.
+
+## 8. Security test matrix (feeds TASK-307; full checklist from research)
+- Unit (~19): deposit happy/zero/insufficient-allowance/ttl-min; claim happy/wrong-code/stolen-sig/malleated-sig/replay-other-escrow/after-expiry/**exact-expiry-boundary**/double-claim/wrong-codeHash-in-sig; cancel only-sender/after-claim; reclaim only-after-expiry/twice; reentrant-mock-token; fee-on-transfer assumption doc.
+- Fuzz (3): deposit-claim round trip; no-claim-without-valid-sig; wrong-code-never-claims.
+- Invariants (3, handler-based): `invariant_Solvency_BalanceGeEscrowedTotal` (>= — donation-safe), `invariant_NoDoublePayout` (per-id state machine, terminal states sticky), `invariant_SenderNeverLosesMoreThanDeposited`.
+- Fork (2): raw AUSD 6-decimal behavior on Monad testnet fork; **frontend-derived-signature parity test** (produces the EIP-712 digest exactly as the Next.js client does — catches domain name/version/chainId mismatches, the #1 integration bug).
+- Static analysis: Slither + Aderyn, triaged report shipped with submission (fix: SafeERC20, amount>0, ttl-min; triage-with-justification: events-in-loop false positive, centralization-by-design on cancel).
+- Frontend: claim code in **URL fragment only** (never transmitted to server — RFC 9110 §7.3; query strings are logged), rate-limited claim lookup, RLS on every table, pinned deps + npm audit.

@@ -1,7 +1,17 @@
 # Project Memory
 
 ## Current Status
-TASK-101 complete — Next.js 16 + React 19 + Tailwind v4 + TS scaffolded, build/lint/typecheck green, pushed to `sreethan05/senda`.
+Full research phase CLOSED (18 agents total: 6 strategy + 2 feasibility + 4 tech + 6 depth waves). Master strategy in PITCH.md. Build unblocked — Phase 1-2 next.
+
+## Key strategy facts (Oct 5 waves)
+- **Position as settlement rail, not retail app** — own the Daimo/Nala graveyard; Tether invested in LemFi; rails win, wallets die.
+- Judges' shared themes: stablecoin rails / hide-the-chain / remittances / passkeys / verified shipping (cheat sheet in PITCH.md §2).
+- Agora Instant Settlement live on Monad (AUSD/USDC pair) — name-drop in write-up; ERC-3009 promoted to TASK-306; encrypted note = Mera double-bounty play (TASK-506).
+- Competition: ~300–600 submissions est.; one public payments competitor (WeMadeIt, group pots); Finance track most crowded; remittance niche open.
+- Off-ramp answer: Busha/Yellow Card API (Mercuryo doesn't settle NGN); signed payout-order mock.
+- Compliance: §4475 1% tax does NOT apply to self-directed wallet-to-wallet; partner-model licensing story; demo disclaimer written (PITCH.md §6).
+- Domain: all senda.* taken; ship on vercel.app (valid rpId via Public Suffix List); brand purchase post-hackathon.
+- Demo rig: scrcpy ×2 phones + Screenity + Clipchamp (free auto-captions); 5-beat 90s structure (PITCH.md §7).
 
 ## Completed
 - Hackathon + track research (6-agent deep research, Oct 4)

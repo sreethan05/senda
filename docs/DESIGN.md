@@ -1,41 +1,38 @@
 # Design System
 
+> Researched Oct 5 (Wise/LemFi/Remitly teardowns, FIDO passkey UX guidance, mobile-web polyfill guides) — see PITCH.md §8. Rules below are evidence-based, not taste.
+
 ## Style
-Modern, minimal, warm. Consumer fintech (Venmo/Wise energy) — explicitly NOT crypto-branded. No hexagons, no neon gradients, no "Web3" iconography anywhere.
+Modern, minimal, warm. Consumer fintech (Wise-class discipline: the cost block is sacred). Explicitly NOT crypto-branded. No hexagons, no neon, no "Web3" iconography anywhere.
 
 ## Typography
-Inter (400 / 600 / 700). Large numerals for amounts (tabular-nums).
+**Inter** for UI + amounts (tabular-nums, amounts always visually larger than labels). **Plus Jakarta Sans 700/800** for headings/brand moments. Both Google Fonts, $0.
+
+## Icons & assets
+**Lucide** (matches Inter's 24px grid). One unDraw illustration max. Wordmark = typed lowercase "senda" — no AI-generated logo. Favicon/PWA icons: one 1024px mark → RealFaviconGenerator + PWABuilder maskable pipeline.
 
 ## Colors
 | Role | Value |
 |---|---|
-| Primary (send / confirm) | `#10B981` emerald |
+| Primary (send / confirm) | `#10B981` emerald — THE one green; never decorative |
 | Background | `#FAFAF9` warm white |
 | Text | `#1C1917` |
 | Muted text | `#78716C` |
-| Accent (arrival / success moments) | `#F59E0B` warm amber |
-| Danger (cancel / errors) | `#DC2626` |
+| Accent (arrival / success) | `#F59E0B` warm amber — one celebratory element only (confetti XOR checkmark, never both) |
+| Danger | `#DC2626` |
 | Card surface | `#FFFFFF` |
 
-## Buttons
-- **Primary:** emerald fill, white text, pill shape (radius 999px), 52px height (thumb-friendly)
-- **Secondary:** white fill, 1px stone-300 border
-- **Destructive:** white fill, red border + red text
-
-## Cards
-Border radius 16px, subtle shadow (`0 1px 3px rgba(0,0,0,0.08)`), 16px padding.
+## The sacred cost block (Wise pattern)
+The SAME 4-line block appears at every reconsideration point — send screen, confirm, receipt:
+**You send / Fee (own line item, never baked in) / Rate + "usually instant" / They get.**
+Numbers set larger than labels; secondary detail in grey. Fee shown on the FIRST send screen, not revealed at confirm.
 
 ## Screens
-1. **Home** — balance (large), "Send money" primary button, recent transfers list
-2. **Send** — amount pad → phone input → confirm sheet (fee + arrival time shown BEFORE send)
-3. **Claim** — link landing: amount, sender name, one big "Claim with fingerprint" button
-4. **Receipt** — amount delivered, settlement time, total cost, WU comparison bar
-5. **History** — list with status chips (Sent / Claimed / Cancelled)
+1. **Home** — balance as the dominant number, NGN equivalent underneath, one green "Send money" CTA bottom-anchored, activity list with plain-language status chips.
+2. **Send** — custom numeric keypad docked bottom (OS keyboard never appears), quick-amount chips, live "they get ₦…" reciprocity updating per keystroke, phone input with country code (`inputmode="tel"`, auto-format).
+3. **Confirm** — cost block + arrival estimate ("~10 seconds · usually instant") + recipient row with edit affordance. One CTA.
+4. **Claim** — sender + amount revealed ABOVE the fold BEFORE any signup wall ("Aisha sent you $50" + one green Claim button). Passkey ceremony is one tap. FIDO rule: value moment first.
+5. **Receipt** — amount, itemized fee, rate + lock time, arrival timestamp, reference number, share/download, one honest flourish: "Banks typically charge $6–12 here. senda charged $0.01."
 
-## UX Requirements
-- Mobile-first: design at 375px, verify at 768px / 1440px
-- Every async action has a loading state
-- Empty states are friendly and instructive ("No transfers yet — send your first one")
-- Error states name the problem and the next step
-- **Zero crypto jargon in the UI.** Never say wallet, gas, chain, token, crypto. Say "money", "fee", "arrives".
-- Amounts show USD + converted NGN (demo corridor) side by side
+## Mobile-web native polyfills (all mandatory)
+`viewport-fit=cover` + safe-area `calc()` padding; `100dvh` shell; **16px minimum inputs** (iOS zoom); `touch-action: manipulation`; 48px touch targets + `user-select:none` + custom `:active` states; `overscroll-behavior: none`; `inputmode` everywhere; **standalone PWA manifest + theme_color** (biggest "feels like an app" lever); no hardcoded bottom offsets.
