@@ -1,5 +1,13 @@
 # Market Refresh — How Payments Work Now (verified Oct 5, 2026)
 
+> **Oct 5 cross-check correction (do not rely on the earlier "niche is open" read):** the claim-link + phone-number + escrow pattern is now a **pattern, not a differentiator**. **AutoPayKe** is a near-exact senda clone — send to any phone number, on-chain escrow, SMS/WhatsApp claim link, auto-refund if unclaimed, no seed phrase — **live in Kenya, Ghana, Uganda with an Italy pilot from Oct 2026** (autopayke.com). Around it: AllScale Claim Link (claim to any EVM address/email wallet), Ramp Network USDC payment links (Base), Payy, Coinbase Wallet Claim links / MiniPay Cash Links. Earlier section below said "one known public competitor (WeMadeIt)" — **that is outdated**; treat AutoPayKe the way we treat Daimo: named, analyzed, pre-empted.
+
+Feeds PITCH.md §1. The surviving differentiator is NOT the mechanics — everyone converged on those. It is: **Monad's sub-second finality + AUSD (the bounty sponsor's own asset) + Mera passkey-only onboarding + fully on-chain verifiable cost.** "The same UX everyone is converging on, on the chain that makes it instant, with the asset the sponsor issues."
+
+---
+
+# Original refresh (Oct 5) — How Payments Work Now
+
 Fresh pass on competitors + current rails. Complements PRD (macro numbers) and RESEARCH_TECH.md (implementation). This file exists because judges will ask: *"Bitso exists. Daimo tried this. Why you?"*
 
 ---

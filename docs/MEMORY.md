@@ -24,8 +24,12 @@ Full research phase CLOSED (18 agents total: 6 strategy + 2 feasibility + 4 tech
 TASK-102 — env handling + chain constants module (`src/lib/config.ts`)
 
 ## Known Issues
+- **AutoPayKe is a near-exact live competitor** (phone + escrow + SMS/WhatsApp claim link + auto-refund; Kenya/Ghana/Uganda, Italy pilot Oct 2026) — the claim-link pattern is table stakes now. Positioning updated (PITCH.md §1): differentiate on Monad finality + AUSD + Mera + on-chain verifiable cost; name AutoPayKe alongside Daimo in the write-up. Also: AllScale Claim Link, Ramp USDC links (Base), Coinbase Wallet Claim / MiniPay Cash Links.
 - **Daimo precedent:** near-identical product (passkey + link claims, USDC/Base) shut its consumer app Feb 2026 — distribution failure, not mechanics. Write-up MUST pre-empt this (RESEARCH_MARKET.md §1/§4). Never use "we're first" language; claim is "first on Monad with AUSD, right now".
+- **AUSD is a LayerZero V2 OFT** — issuer-controlled, permissioned, EIP-1967 upgradeable; frozen/paused states are first-class in TEST_PLAN; atomic revert means nothing strands (RESEARCH_TECH.md §2b).
+- **rpId decision due NOW:** pick the final `senda-*.vercel.app` project name BEFORE creating any demo passkeys — passkeys don't survive an rpId change. Try `senda-app.vercel.app` when creating the Vercel project (`senda.vercel.app` is likely taken).
 - Real fee competitors are LemFi/Nala/Afriex ($0 fee, ~1–3% hidden FX spread), not just WU — receipt comparison must include them (TASK-601 updated).
+- Nigeria write-up: name **CBN VASP sandbox (Aug 2026) + Payments System Vision 2028 + cNGN** alongside Yellow Card/Busha.
 - No public mainnet MON faucet — need to buy/bridge a small amount of MON for gas (TASK-104)
 - NEAR Intents exploited Sept 30 2026, patched Oct 2 — only relevant if stretch TASK-606 is attempted
 - Mera PRF requires Chrome/Edge (no Firefox) — demo browser is Chrome

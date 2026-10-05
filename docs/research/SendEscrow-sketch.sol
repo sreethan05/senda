@@ -4,21 +4,26 @@
 pragma solidity ^0.8.24;
 
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "openzeppelin-contracts/token/ERC20/utils/SafeERC20.sol";
 import {EIP712} from "openzeppelin-contracts/utils/EIP712.sol";
 import {ECDSA} from "openzeppelin-contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "openzeppelin-contracts/utils/cryptography/MessageHashUtils.sol";
 
 contract SendEscrow is EIP712 {
     using ECDSA for bytes32;
+    using SafeERC20 for IERC20;
 
     bytes32 private constant CLAIM_TYPEHASH =
         keccak256("Claim(uint256 escrowId,bytes32 codeHash,address payee)");
 
+    /// @dev minimum ttl — prevents same-block deposit+reclaim and mid-demo expiry
+    uint40 public constant MIN_TTL = 10 minutes;
+
     struct Escrow {
         address sender;      // can cancel / reclaim target
         uint96 amount;       // AUSD, 6 decimals
-        bytes32 phoneHash;   // keccak(phone ++ salt); salt never on-chain, lives in link (display only)
-        bytes32 codeHash;    // keccak(abi.encodePacked(code)) — 6-digit claim code commitment
+        bytes32 phoneHash;   // keccak256(phone ++ salt); salt never on-chain, lives in link (display only)
+        bytes32 codeHash;    // keccak256(abi.encodePacked(code)) — 6-digit claim code commitment
         uint64 expiresAt;    // unclaimed funds return via reclaim()
         bool claimed;
     }
@@ -33,6 +38,8 @@ contract SendEscrow is EIP712 {
     error NotYetExpired();
     error BadCode();
     error BadSignature();
+    error AmountZero();
+    error TtlTooShort();
 
     constructor(address ausd_) EIP712("SendEscrow", "1") {
         ausd = IERC20(ausd_);
@@ -42,6 +49,8 @@ contract SendEscrow is EIP712 {
         external
         returns (uint256 id)
     {
+        if (amount == 0) revert AmountZero();
+        if (ttl < MIN_TTL) revert TtlTooShort();
         id = ++nextId;
         escrows[id] = Escrow(
             msg.sender,
@@ -51,14 +60,19 @@ contract SendEscrow is EIP712 {
             uint64(block.timestamp) + ttl,
             false
         );
-        ausd.transferFrom(msg.sender, address(this), amount); // interactions last (CEI)
+        // SafeERC20: reverts on failure instead of silent false return.
+        // NOTE: if AUSD ever freezes `msg.sender` or pauses transfers, this
+        // reverts BEFORE any state is written (interaction is last) — the
+        // escrow can never hold tokens it didn't account for. Frozen mid-flow
+        // states are handled by cancel/reclaim refund paths, never stranding.
+        ausd.safeTransferFrom(msg.sender, address(this), amount); // interactions last (CEI)
     }
 
     function claim(uint256 id, string calldata code, bytes calldata sig) external {
         Escrow storage e = escrows[id];
         if (e.claimed || e.amount == 0) revert AlreadyClaimed();
         if (block.timestamp > e.expiresAt) revert Expired();
-        bytes32 ch = keccak(abi.encodePacked(code));
+        bytes32 ch = keccak256(abi.encodePacked(code));
         if (ch != e.codeHash) revert BadCode();
         // effects before interactions
         e.claimed = true;
@@ -68,7 +82,13 @@ contract SendEscrow is EIP712 {
         if (digest.recover(sig) != msg.sender) revert BadSignature();
         uint96 amt = e.amount;
         e.amount = 0;
-        ausd.transfer(msg.sender, amt);
+        // If AUSD is frozen/paused at this instant, safeTransfer reverts the
+        // WHOLE transaction — atomicity rolls back `claimed`/`amount`, funds
+        // stay in escrow, recipient retries after unpause (or sender cancels /
+        // expiry reclaim). Nothing can strand; the UI must decode
+        // AccountIsFrozen / paused-style reverts into a "try again shortly"
+        // state instead of a generic error. (Task-302: add fork test.)
+        ausd.safeTransfer(msg.sender, amt);
     }
 
     function cancel(uint256 id) external {
@@ -78,7 +98,7 @@ contract SendEscrow is EIP712 {
         e.claimed = true; // slot burned; funds out below
         uint96 amt = e.amount;
         e.amount = 0;
-        ausd.transfer(msg.sender, amt);
+        ausd.safeTransfer(msg.sender, amt);
     }
 
     /// @notice anyone may bounce expired funds back to the sender
@@ -89,6 +109,6 @@ contract SendEscrow is EIP712 {
         e.claimed = true;
         uint96 amt = e.amount;
         e.amount = 0;
-        ausd.transfer(e.sender, amt);
+        ausd.safeTransfer(e.sender, amt);
     }
 }

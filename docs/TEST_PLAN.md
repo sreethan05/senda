@@ -26,7 +26,10 @@
 - deposit → cancel happy path
 - claim twice reverts; cancel after claim reverts
 - claim with wrong signature reverts
+- claim with sig over wrong codeHash reverts
 - amounts with 6-decimal precision round-trip exactly
+- **frozen/paused states (first-class):** claim while AUSD `isAccountFrozen(claimant)` reverts atomically, escrow stays pending, retry succeeds after unfreeze; same for `isTransferPaused()` on deposit/claim/cancel/reclaim (fork tests with mocked OFT behavior)
+- **expiry boundary:** claim at exact `expiresAt` succeeds; reclaim one second later succeeds; `ttl < 10 min` reverts
 
 ## Responsive
 Test at: 375px (primary), 768px, 1440px

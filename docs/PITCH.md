@@ -8,11 +8,11 @@ Distilled from 10 research agents: judges, sponsors, UX, branding/domain/demo, o
 
 **Tagline:** *senda — instant claimable-AUSD settlement rails.*
 
-The market's own answer to "who wins stablecoin remittances" was: **the rails win, the retail wallets die** (Daimo → Daimo Pay B2B; Nala → settlement infrastructure; Beam → acquired; Tether invested in LemFi for settlement). So senda is pitched as **the settlement layer the LemFis will run on** — with a consumer demo to prove it.
+**The wedge in one sentence:** *"The same UX the whole industry is converging on — phone-number claim links, passkey onboarding — on the chain that makes it instant and with the asset the bounty sponsor issues."*
 
-**Own Daimo out loud** (README, video, write-up): *"Daimo proved passkey payment-links work — and killed the retail wrapper to build rails; Nala did the same pivot. senda starts as the rail."* This converts our biggest attack into our thesis.
+**The graveyard is bigger than Daimo.** Pre-empt ALL of it by name in the write-up: Daimo (killed retail → B2B rails), Beam (acquired, wound down), Valora (team → Stripe), **AutoPayKe** (live phone-number + escrow + claim-link remittances in Kenya/Ghana/Uganda — proof the *pattern* works, on chains without Monad's speed or an AUSD-like sponsor asset), AllScale Claim Link, Coinbase Wallet claim links, MiniPay Cash Links. Every one of them validates the mechanics; none has Monad's finality, an issuer-aligned stablecoin, or passkey-only onboarding via Mera. The market's own verdict: **the rails win, the retail wrappers die** — so senda is the rail.
 
-**Fee comparison screen shows three rows:** WU (~4–9%) for contrast → "typical app: $0 fee, 1–3% hidden spread" (LemFi/Nala/Afriex) → **senda: $0.01, every number verifiable on-chain.** The fight is *transparent vs opaque*, not just cheap vs expensive.
+**Fee comparison screen shows three rows:** WU (~4–9%) for contrast → "typical app: $0 fee, 1–3% hidden spread" (LemFi/Nala/Afriex) → **senda: $0.01, every number verifiable on-chain.** **The emotional beat is verifiability, not price** — "cheaper than WU" is table stakes now; show the on-chain rate path, fee, and settlement timestamp where the incumbents show a black box.
 
 ## 2. The judge panel — 5 themes everyone shares
 
@@ -43,6 +43,12 @@ Compliance-forward line for Ajit Tripathi: demo = no licensed activity; producti
 - [ ] Per-corridor salt namespacing (`senda:US->NG`) as the "many keys" story
 
 **Aurora ($5K, stretch — only if main demo frozen by day 6):** widget `@aurora-is-near/intents-swap-widget` locked to Monad, PDA "your dedicated Monad deposit address", USDC-then-swap-to-AUSD, Shield-incident-gated deposits (judge-impressing "we read the incident report" touch). Keys self-serve at studio.aurora.dev. ⚠️ Monad pairs were not quotable unauthenticated on Oct 5 (post-exploit) — verify with a real key FIRST; $5K is split across 3 winners; no testnet.
+
+**Cheap adjacency (add to submission's bounty section, ~1–3h each):**
+- **Nansen ($5K):** surface the "every metric verifiable on-chain" claim through Nansen's API/label data — even a wallet-labels panel counts as "best use of Nansen".
+- **Envio ($1K):** the stretch indexer (TASK-605) already qualifies as "Best Use of Envio" if HyperIndex powers the history feed.
+- **Community ($5K):** the build-in-public cadence (§3 bottom) done deliberately.
+- **Alchemy ($1K credits):** route the app's RPC through Alchemy if supported — config-level effort.
 
 **Community ($5K):** build in public 2–3×/week — tag @monad_dev, @keoneHD, @withAUSD, @category_xyz, @mveehkim; phrase "Metropolis hackathon" + #Monad; cross-post LinkedIn (Monad amplifies there). Makes the Community Team bounty directly monetizable.
 

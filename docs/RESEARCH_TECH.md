@@ -71,6 +71,18 @@ escrow: transfer(claimant, amount)
 
 ---
 
+## 2b. AUSD architecture facts (cross-check Oct 5 — Aave assessment + Agora docs)
+
+AUSD on Monad is a **LayerZero V2 OFT**: bridging is burn-and-mint via an OFT adapter, the token is **issuer-controlled and permissioned**, and the proxy is **EIP-1967 upgradeable**. Confirmed surfaces: `isAccountFrozen(address)` (Freezer role), global pauses (`isTransferPaused()` etc.), custom errors (`AccountIsFrozen`, `ZeroAmount`, OZ-style `ERC20InsufficientAllowance/Balance/Receiver`).
+
+**First-class states for TEST_PLAN + UI (not afterthoughts):**
+1. **Frozen claimant at claim time** → claim tx reverts atomically; escrow state rolls back; funds stay claimable. UI decodes to "issuer temporarily blocked this transfer — try again shortly" + sender cancel + expiry reclaim as the two escape hatches.
+2. **Transfer paused mid-flow** → same atomic-revert story for deposit/claim/cancel/reclaim; nothing strands.
+3. Fork-test both branches (`fork_Claim_RevertsWhenFrozen_Mock`). This IS the answer to the judge question *"what if Agora freezes a claimant?"* — "atomic revert + three refund paths; here's the test."
+
+## 2c. Nigeria off-ramp refresh (Oct 5 cross-check)
+Partner-model direction stands; specifics updated: **CBN opened a VASP regulatory sandbox in Aug 2026** and is building the licensing regime under **Payments System Vision 2028**, which treats fiat-backed stablecoins as monetary instruments with reserve-custody and "RegTech node" requirements. **cNGN** (SEC-authorized naira stablecoin) + the CBN sandbox belong in the production path named alongside Yellow Card/Busha/Quidax — more current, more judge-impressive. Busha API remains the closest integration option; Mercuryo still does not settle NGN.
+
 ## 3. SendEscrow + claim-link design (prior art: Linkdrop P2P, Umbra)
 
 Nobody cryptographically binds claims to phone numbers — phones hold no keys. Industry pattern = **knowledge of an out-of-band secret + claimant signature**. SMS OTP (Twilio ~$0.05/verification, trial can only text pre-verified numbers) is rejected: cost + demo risk + it's off-chain theater anyway.
