@@ -33,7 +33,9 @@ senda lets a worker abroad send AUSD (Agora's stablecoin) to a phone number. The
 | [docs/SECURITY.md](docs/SECURITY.md) | Security requirements |
 | [docs/PITCH.md](docs/PITCH.md) | Master strategy: positioning, judges, bounties, demo plan |
 | [docs/RESEARCH_TECH.md](docs/RESEARCH_TECH.md) | Verified technical research (Mera, AUSD, escrow, infra) |
-| [docs/RESEARCH_MARKET.md](docs/RESEARCH_MARKET.md) | Market + competitor research |
+| [docs/RESEARCH_MARKET.md](docs/RESEARCH_MARKET.md) | Market + competitor + field intel |
+| [docs/RESEARCH_JUDGES.md](docs/RESEARCH_JUDGES.md) | Judge-by-judge cheat sheet + sponsor profiles |
+| [docs/RESEARCH_SECURITY.md](docs/RESEARCH_SECURITY.md) | Vulnerability matrix + Foundry test plan |
 
 ## Status
 
