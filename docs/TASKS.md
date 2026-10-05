@@ -19,7 +19,7 @@ Work ONE task at a time: implement → test → review → commit → mark compl
 
 ## Phase 3: Contracts (Days 3–4 — Oct 6/7)
 - [x] TASK-301 Foundry init in `contracts/`, point at Monad testnet + mainnet
-- [ ] TASK-302 `SendEscrow.sol` (design per RESEARCH_TECH.md §3 + sketch v3): app generates a 32-byte ephemeral **link key** client-side; `depositTo(linkKey, amount, ttl)` pulls AUSD via SafeERC20; `claim(id, payee, sig)` is **relayer-submitted** — requires the **link key's EIP-712 signature** over `Claim(escrowId, payee)` (recover(sig) == stored linkKey); `cancel(id)` sender-only; `reclaim(id)` for expiry. **Emits Deposited/Claimed/Cancelled/Reclaimed.** Guards: `amount > 0`, `ttl >= 10 min`, `linkKey != 0`, `NoEscrow`. Frozen/paused AUSD reverts atomically (nothing strands).
+- [x] TASK-302 `SendEscrow.sol` (design per RESEARCH_TECH.md §3 + sketch v3): app generates a 32-byte ephemeral **link key** client-side; `depositTo(linkKey, amount, ttl)` pulls AUSD via SafeERC20; `claim(id, payee, sig)` is **relayer-submitted** — requires the **link key's EIP-712 signature** over `Claim(escrowId, payee)` (recover(sig) == stored linkKey); `cancel(id)` sender-only; `reclaim(id)` for expiry. **Emits Deposited/Claimed/Cancelled/Reclaimed.** Guards: `amount > 0`, `ttl >= 10 min`, `linkKey != 0`, `NoEscrow`. Frozen/paused AUSD reverts atomically (nothing strands).
 - [ ] TASK-303 Foundry tests: deposit, claim, cancel, double-claim, wrong-signature claim, reentrancy
 - [ ] TASK-304 Deploy to testnet 10143, verify, run full manual loop
 - [ ] TASK-305 Deploy to mainnet 143, verify, pin address in env
