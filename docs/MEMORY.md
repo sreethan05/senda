@@ -21,7 +21,7 @@ Full research phase CLOSED (18 agents total: 6 strategy + 2 feasibility + 4 tech
 - TASK-101 scaffold (Next.js 16.3.8, React 19.2.8, Tailwind 4, TS 5) + typecheck script
 
 ## Current Task
-TASK-102 — env handling + chain constants module (`src/lib/config.ts`)
+Phase 2 auth — TASK-202 done (AuthProvider + RequireAuth + placeholder home + guarded /send + /history shells). Next: TASK-203 (dev burner) + TASK-204 (AUSD balance). TASK-103 still needs the user's Vercel login to deploy the preview.
 
 ## Known Issues
 - **Reconciliation (Oct 5, review #2):** a second external review (separate AI session) correctly identified v2's relayer flaw — the relayer learns the secret from its own calldata and can redirect; "front-running fund-neutral" was only true for verbatim replay. **Already fixed by v3 (Linkdrop-style ephemeral link key, commit 27b7a2d, ADR-013):** the fragment holds a private key, the claim sig is made BY that key client-side, the relayer sees only (id, payee, sig) — redirect impossible, forgery needs the never-broadcast key. **Their `senda-v2-propagation.patch` / `senda-v2-docs.zip` describe the v2 trust model and are SUPERSEDED — do NOT apply** (they would regress ADR-013/SECURITY/RESEARCH_TECH to v2 honesty language). Their gas-drip alternative was considered and rejected in ADR-013 (keeps a reveal race; link-key kills it too). Private-mempool submission: unnecessary under v3 (the key never broadcasts).

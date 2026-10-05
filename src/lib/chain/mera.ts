@@ -181,5 +181,5 @@ export function createWalletClientForSession(session: Secp256k1SigningSession) {
 }
 
 export { isMeraError };
-export type { MeraErrorCode } from "@category-labs/mera";
+export type { EvmAddress, MeraErrorCode } from "@category-labs/mera";
 export type { Secp256k1SigningSession };
