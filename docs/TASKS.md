@@ -6,7 +6,7 @@ Work ONE task at a time: implement → test → review → commit → mark compl
 
 ## Phase 1: Setup (Day 1 — Oct 4/5)
 - [x] TASK-101 Init Next.js + TypeScript + Tailwind in repo
-- [ ] TASK-102 Configure env handling + `.env.example`, chain constants (143, AUSD address)
+- [x] TASK-102 Configure env handling + `.env.example`, chain constants (143, AUSD address)
 - [ ] TASK-103 Deploy placeholder Home screen to Vercel preview
 - [ ] TASK-104 Acquire small amount of MON for mainnet gas (no faucet exists — buy/bridge)
 
