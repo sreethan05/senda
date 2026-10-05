@@ -36,7 +36,7 @@ Work ONE task at a time: implement → test → review → commit → mark compl
 - [ ] TASK-505 History list with status chips
 
 ## Phase 6: Demo polish (Day 7 — Oct 10)
-- [ ] TASK-601 Receipt comparison: WU 6.4% / 8% vs senda fee + arrival bar
+- [ ] TASK-601 Receipt comparison: WU 4–9% + "typical app: $0 fee, 1–3% hidden spread" vs senda $0.01 — position as *verifiable on-chain* (see RESEARCH_MARKET.md §4)
 - [ ] TASK-602 NGN conversion display on every amount
 - [ ] TASK-603 Empty/loading/error states pass across all screens
 - [ ] TASK-604 PWA manifest + icon + name polish ("senda" lowercase branding)

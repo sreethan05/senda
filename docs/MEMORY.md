@@ -14,6 +14,8 @@ TASK-101 complete — Next.js 16 + React 19 + Tailwind v4 + TS scaffolded, build
 TASK-102 — env handling + chain constants module (`src/lib/config.ts`)
 
 ## Known Issues
+- **Daimo precedent:** near-identical product (passkey + link claims, USDC/Base) shut its consumer app Feb 2026 — distribution failure, not mechanics. Write-up MUST pre-empt this (RESEARCH_MARKET.md §1/§4). Never use "we're first" language; claim is "first on Monad with AUSD, right now".
+- Real fee competitors are LemFi/Nala/Afriex ($0 fee, ~1–3% hidden FX spread), not just WU — receipt comparison must include them (TASK-601 updated).
 - No public mainnet MON faucet — need to buy/bridge a small amount of MON for gas (TASK-104)
 - NEAR Intents exploited Sept 30 2026, patched Oct 2 — only relevant if stretch TASK-606 is attempted
 - Mera PRF requires Chrome/Edge (no Firefox) — demo browser is Chrome
