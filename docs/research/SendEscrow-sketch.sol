@@ -32,6 +32,13 @@ contract SendEscrow is EIP712 {
     uint256 public nextId;
     mapping(uint256 escrowId => Escrow) public escrows;
 
+    // Events power the Envio indexer (TASK-605 history feed) and the Nansen
+    // labels panel — off-chain consumers MUST NOT scrape state variables.
+    event Deposited(uint256 indexed escrowId, address indexed sender, bytes32 indexed phoneHash, uint96 amount, uint64 expiresAt);
+    event Claimed(uint256 indexed escrowId, address indexed payee, uint96 amount);
+    event Cancelled(uint256 indexed escrowId, address indexed sender, uint96 amount);
+    event Reclaimed(uint256 indexed escrowId, uint96 amount);
+
     error AlreadyClaimed();
     error NotSender();
     error Expired();
@@ -61,11 +68,12 @@ contract SendEscrow is EIP712 {
             false
         );
         // SafeERC20: reverts on failure instead of silent false return.
-        // NOTE: if AUSD ever freezes `msg.sender` or pauses transfers, this
-        // reverts BEFORE any state is written (interaction is last) — the
-        // escrow can never hold tokens it didn't account for. Frozen mid-flow
-        // states are handled by cancel/reclaim refund paths, never stranding.
-        ausd.safeTransferFrom(msg.sender, address(this), amount); // interactions last (CEI)
+        // NOTE: escrow state IS written before this interaction (CEI order);
+        // if AUSD freezes `msg.sender` or is paused, safeTransferFrom reverts
+        // and the WHOLE tx reverts atomically — id counter and escrow state
+        // roll back, nothing recorded, nothing stranded.
+        ausd.safeTransferFrom(msg.sender, address(this), amount); // interaction last (CEI)
+        emit Deposited(id, msg.sender, phoneHash, amount, uint64(block.timestamp) + ttl);
     }
 
     function claim(uint256 id, string calldata code, bytes calldata sig) external {
@@ -89,6 +97,7 @@ contract SendEscrow is EIP712 {
         // AccountIsFrozen / paused-style reverts into a "try again shortly"
         // state instead of a generic error. (Task-302: add fork test.)
         ausd.safeTransfer(msg.sender, amt);
+        emit Claimed(id, msg.sender, amt);
     }
 
     function cancel(uint256 id) external {
@@ -99,6 +108,7 @@ contract SendEscrow is EIP712 {
         uint96 amt = e.amount;
         e.amount = 0;
         ausd.safeTransfer(msg.sender, amt);
+        emit Cancelled(id, msg.sender, amt);
     }
 
     /// @notice anyone may bounce expired funds back to the sender
@@ -110,5 +120,6 @@ contract SendEscrow is EIP712 {
         uint96 amt = e.amount;
         e.amount = 0;
         ausd.safeTransfer(e.sender, amt);
+        emit Reclaimed(id, amt);
     }
 }

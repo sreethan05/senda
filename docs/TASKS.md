@@ -19,12 +19,12 @@ Work ONE task at a time: implement → test → review → commit → mark compl
 
 ## Phase 3: Contracts (Days 3–4 — Oct 6/7)
 - [ ] TASK-301 Foundry init in `contracts/`, point at Monad testnet + mainnet
-- [ ] TASK-302 `SendEscrow.sol` (design per RESEARCH_TECH.md §3): `depositTo(phoneHash, codeHash, amount, ttl)` pulls AUSD; `claim(id, code, sig)` — codeHash match + EIP-712 `Claim(escrowId, codeHash, payee)` with `ecrecover == msg.sender`; `cancel(id)` sender-only; `reclaim(id)` for expiry
+- [ ] TASK-302 `SendEscrow.sol` (design per RESEARCH_TECH.md §3 + sketch): `depositTo(phoneHash, codeHash, amount, ttl)` pulls AUSD via SafeERC20; `claim(id, code, sig)` — codeHash match + EIP-712 `Claim(escrowId, codeHash, payee)` with `ecrecover == msg.sender`; `cancel(id)` sender-only; `reclaim(id)` for expiry. **Emits Deposited/Claimed/Cancelled/Reclaimed** (indexer + Nansen panel depend on them). Guards: `amount > 0`, `ttl >= 10 min`. Frozen/paused AUSD reverts atomically (nothing strands) — see sketch notes.
 - [ ] TASK-303 Foundry tests: deposit, claim, cancel, double-claim, wrong-signature claim, reentrancy
 - [ ] TASK-304 Deploy to testnet 10143, verify, run full manual loop
 - [ ] TASK-305 Deploy to mainnet 143, verify, pin address in env
 - [ ] TASK-306 (Agora bounty) ERC-3009 gasless sender: `transferWithAuthorization` (EIP-712 domain "Agora Dollar") so the sender needs no MON — or a dedicated demo beat if full path is heavy
-- [ ] TASK-307 Threat-model page + Slither/Aderyn triaged report + Foundry suite per RESEARCH_TECH §6 (unit + fuzz + solvency invariant + mainnet-fork signature-parity test)
+- [ ] TASK-307 Threat-model page + Slither/Aderyn triaged report + Foundry suite per RESEARCH_TECH §8 (unit incl. expiry-boundary, fuzz, solvency invariant, mainnet-fork signature-parity test **+ `fork_Claim_RevertsWhenFrozen_Mock`**)
 
 ## Phase 4: Send flow (Day 5 — Oct 8)
 - [ ] TASK-401 Amount input + phone input (E.164 validation, NGN preview)
@@ -45,12 +45,12 @@ Work ONE task at a time: implement → test → review → commit → mark compl
 - [ ] TASK-602 NGN conversion display on every amount
 - [ ] TASK-603 Empty/loading/error states pass across all screens
 - [ ] TASK-604 PWA manifest + icon + name polish ("senda" lowercase branding)
-- [ ] TASK-605 (stretch) Envio indexer for instant history
+- [ ] TASK-605 (stretch) Envio indexer consuming the four contract events (Deposited/Claimed/Cancelled/Reclaimed) for instant history — doubles as the "Best Use of Envio" bounty entry
 - [ ] TASK-606 (stretch) Aurora/NEAR Intents "add funds from any chain" button
 
 ## Phase 7: Demo + submission (Days 8–9 — Oct 11/12)
 - [ ] TASK-701 Write 90-second demo script (two phones + stopwatch + WU comparison)
-- [ ] TASK-702 Record video (plus backup lossless take of every critical path — scrcpy two-phone rig, Screenity, Clipchamp auto-captions per PITCH.md §7)
+- [ ] TASK-702 Record video (plus backup lossless take of every critical path — scrcpy two-phone rig, Screenity, Clipchamp auto-captions per PITCH.md §7). **Reclaim beat:** deposit a second escrow with ttl=10 min at session start, jump-cut with a "+10 min" timestamp overlay, then call reclaim() live — MIN_TTL stays 10 min in the real contract; no demo build with altered constants.
 - [ ] TASK-703 Write project profile: demo, write-up (problem/moat/why-Monad), code link
 - [ ] TASK-704 Fill bounty fields: Agora, Mera UX (+ Aurora if integrated)
 - [ ] TASK-705 Submit by Oct 12 EOD — never Oct 13 night

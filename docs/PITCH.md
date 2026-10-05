@@ -76,6 +76,7 @@ Remitly earns **~$188/active-customer/year at 60–66% gross margin** charging ~
 
 - **Structure (75–90s, 5 beats):** 0–8s hook (WU fee receipt) → 8–15s "senda" name → 15–55s live two-phone demo (sender passkey send → receiver buzzes in seconds → on-chain confirmation flash) → 55–70s one graphic (Mera → Monad → recipient) → 70–85s close: URL + closing line + logo hold.
 - **Rig:** two Android phones mirrored via `scrcpy` side-by-side (`winget install scrcpy`, `--record` per phone), captured with **Screenity** (free Chrome ext), edited in **Clipchamp** (free auto-captions — CapCut captions are now paywalled). Burned-in captions mandatory (judges watch muted). One hero shot of real phones for the opening 5s.
+- **Reclaim beat ("nothing can strand"):** deposit a second escrow with ttl=10 min at session start; jump-cut with a "+10 min" timestamp overlay; call `reclaim()` live. MIN_TTL stays 10 min in the shipped contract — no altered-constants demo build. This beat proves the expiry refund competitors (who auto-refund off-chain) can't show.
 - **Script written before code is finalized** (per the guide); record 3–4 takes per action; backup lossless take of every critical path.
 - Domain: ship on `senda-*.vercel.app` (vercel.app is on the Public Suffix List → valid passkey rpId). All senda.* domains taken; buy the brand post-hackathon.
 
@@ -89,4 +90,4 @@ Ship: threat-model page (actors, trust boundaries, EIP-712 flow), Slither+Aderyn
 
 ## 10. What we CUT (scope discipline)
 
-Multi-token support, recurring/subscriptions, family pools, AgentWallet plugin, Chainlink CRE, Nansen API, Aurora (unless frozen by day 6), custom domain. Enemies: scope creep and a dead claim link.
+Cut the **full Nansen data product** (keep only a labels panel fed by our own events for the bounty — see §3); multi-token support; recurring/subscriptions; family pools; AgentWallet plugin; Chainlink CRE; Aurora (unless frozen by day 6); custom domain. ERC-3009 stays, scoped: escrow core = plain `transferFrom`; ERC-3009 is only the sender-side gasless path (TASK-306). Enemies: scope creep and a dead claim link.
