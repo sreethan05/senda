@@ -65,11 +65,12 @@ Remitly earns **~$188/active-customer/year at 60–66% gross margin** charging ~
 
 **Demo closing line:** *"Remitly earns $188 a year per customer by charging 3% to move money in three days. senda moves it in three seconds, charges nothing, and pays users to hold it — because on Monad, the float is on-chain and the yield goes to the user, not the middleman."*
 
-## 6. Off-ramp + compliance (judge Q&A, pre-answered)
+## 6. Off-ramp, on-ramp + compliance (judge Q&A, pre-answered)
 
-- **Off-ramp line:** "Recipient taps 'Sell to Naira' in a licensed Nigerian VASP — Yellow Card, Busha, or Quidax — minutes, ~1% all-in. Busha and Yellow Card both expose APIs; production chains the quote onto claim redemption." Mock = signed **payout-order artifact** (honest handoff, not a silent fake naira screen). Mercuryo gotcha: their off-ramp settles EUR/USD/GBP only — that's why the naira gap is the interesting problem.
+- **On-ramp (the gap reviewers flagged — sender "doesn't use crypto" but needs AUSD + MON):** demo answer = testnet faucets + pre-funded demo wallets (honest: "on-ramp is a partner function, here's the production path"). Production = US bank/card → AUSD via an on-ramp partner (**Mercuryo — a Metropolis sponsor — covers USD on-ramp**; Ramp Network is the other name), plus **any-chain funding via Aurora Intents** (the stretch — it IS the on-ramp story). Sender MON in production = paymaster/relayer (same relayer infra as the claim).
+- **Off-ramp line:** "Recipient taps 'Sell to Naira' in a licensed Nigerian VASP — Yellow Card, Busha, or Quidax — minutes, ~1% all-in. Busha and Yellow Card both expose APIs; production chains the quote onto claim redemption." Mock = signed **payout-order artifact** (honest handoff, not a silent fake naira screen). Mercuryo gotcha: their off-ramp settles EUR/USD/GBP only — that's why the naira gap is the interesting problem. Production path also names **CBN's VASP sandbox (Aug 2026), Payments System Vision 2028, and cNGN**.
 - **Money transmission:** demo performs none (no fees/users/value); production = partner model (US MTL $250–435K across 49 states — hence partner-first), Nigeria leg via SEC-licensed VASP with BVN/NIN KYC.
-- **1% excise tax:** not applicable to self-directed wallet-to-wallet stablecoin transfer (§4475 covers cash-funded provider-mediated transfers). Forbes: the tax is *pushing flows onto stablecoin rails*.
+- **1% excise tax:** not applicable to self-directed wallet-to-wallet stablecoin transfer (§4475 covers **cash/money-order/cashier's-check-funded** provider-mediated transfers — bank-funded transfers are excluded too; proposed regs Apr 13 2026). Forbes: the tax is *pushing cash-funded flows onto stablecoin rails*.
 - **Disclaimer** (demo app footer + write-up): "Demo only. Not a licensed money transmitter. Production requires FinCEN MSB registration + state MTLs or a licensed partner, and an SEC(Nigeria)-licensed VASP off-ramp with BVN/NIN KYC, OFAC screening, and Travel Rule compliance."
 
 ## 7. Demo video (due Oct 11-12) — production plan
@@ -90,4 +91,4 @@ Ship: threat-model page (actors, trust boundaries, EIP-712 flow), Slither+Aderyn
 
 ## 10. What we CUT (scope discipline)
 
-Cut the **full Nansen data product** (keep only a labels panel fed by our own events for the bounty — see §3); multi-token support; recurring/subscriptions; family pools; AgentWallet plugin; Chainlink CRE; Aurora (unless frozen by day 6); custom domain. ERC-3009 stays, scoped: escrow core = plain `transferFrom`; ERC-3009 is only the sender-side gasless path (TASK-306). Enemies: scope creep and a dead claim link.
+**Everything below is cut until the core loop (auth → escrow → send → claim → receipt) works end-to-end on testnet** — per external review, scope is the #1 risk with ~15 docs and one scaffold commit: ERC-3009 (TASK-306), encrypted note (TASK-506), Aurora (TASK-606), Envio indexer (TASK-605), Nansen labels panel, Alchemy routing. Once the core loop is green on testnet, re-admit in this order: Nansen labels → Envio → ERC-3009 → note → Aurora. Also cut: the full Nansen data product (a labels panel only, fed by our own events), multi-token support, recurring/subscriptions, family pools, AgentWallet plugin, Chainlink CRE, custom domain. Enemies: scope creep and a dead claim link.
