@@ -13,28 +13,31 @@ Mera (`@category-labs/mera`) — WebAuthn passkey with PRF extension → locally
 
 ## Database
 Supabase PostgreSQL — an **index only**, never a custodian:
-- `claims` table: escrow id, phone hash, amount, status (`pending | claimed | cancelled`), created/expires timestamps.
-- No private keys, no mnemonics, no PII beyond a salted phone hash.
+- `claims` table: escrow id, key hash (keccak256 of the link key — the anon lookup key), amount, status (`pending | claimed | cancelled | expired`), created/settled timestamps.
+- No private keys, no mnemonics, no link keys, no raw phone numbers — the phone number routes where the link is *sent* (app layer only) and is never stored.
 
 ## Money Flow
 ```
 Sender (passkey EOA)
-   │  1. approve AUSD + depositTo(phoneHash, codeHash, amount, ttl)
+   │  app generates a 32-byte ephemeral LINK KEY client-side
+   │  1. approve AUSD + depositTo(linkKeyAddress, amount, ttl)
    ▼
-SendEscrow.sol (Monad 143) ── funds locked
+SendEscrow.sol (Monad 143) ── funds locked against the link key's ADDRESS
    │
-   ├─ 2. app stores {escrowId, phoneHash} in Supabase, renders claim link
-   │     link carries: /claim/[id]#code=XXXXXX&salt=…   ("SMS" = opening link on phone 2)
+   ├─ 2. app stores {escrowId, keyHash} in Supabase, renders claim link
+   │     link = /claim/[id]#k=<link key hex>   (private key lives ONLY in the fragment)
    ▼
 Recipient opens link
-   │  3. creates passkey (Mera) → EOA; signs EIP-712 Claim(escrowId, codeHash, payee)
+   │  3. creates passkey (Mera) → payee account
+   │     app signs Claim(escrowId, payee) WITH THE LINK KEY (client-side, no gas)
    ▼
-Recipient account
-   │  4. claim(id, code, sig) — codeHash match + ecrecover(sig) == msg.sender == payee
+senda relayer (server wallet — pays gas, learns only id+payee+signature)
+   │  4. claim(id, payee, sig) — recover(sig) == stored linkKey → pays payee
    ▼
-AUSD released instantly (~1s finality)
+AUSD lands in the recipient's passkey account (~1s finality)
 ```
-Cancel: sender can `cancel(id)` before claim → refund. Expiry: `reclaim(id)` bounces unclaimed funds to sender after `ttl` — nothing can strand. Claim is front-running-fund-neutral (signature binds the payee). Full design rationale: [RESEARCH_TECH.md](RESEARCH_TECH.md) §3.
+**Why the relayer can't steal:** it never sees the link key — only a signature over a fixed payee. Forging a signature for any other destination requires the key. Replaying observed calldata pays the same payee. Possession of the link = possession of the key = ownership (documented Linkdrop analogy).
+Cancel: sender can `cancel(id)` before claim → refund. Expiry: `reclaim(id)` bounces unclaimed funds to the sender after `ttl` — nothing can strand. Full design rationale: [RESEARCH_TECH.md](RESEARCH_TECH.md) §3.
 
 ## Deployment
 Vercel (preview → production). Contracts deployed to Monad testnet first (`10143`), then mainnet; addresses pinned in `.env`.

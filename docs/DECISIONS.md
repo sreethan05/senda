@@ -8,13 +8,13 @@
 **Decision:** passkey auth via `@category-labs/mera`; burner wallet only behind a dev env flag.
 **Reason:** aligns with the Agora bounty ("Mera passkey onboarding") and the Best Mera-Powered UX bounty ("Mera is the entire account layer — no seed phrase, no extension, no custody backend"). Also the product's core moat: onboarding without crypto friction.
 
-## ADR-003 — Escrow + claim link instead of direct transfer
-**Decision:** funds route through a `SendEscrow` contract; recipient is unknown at send time and claims via signature bound to a phone hash.
-**Reason:** phone-number sending requires holding funds until the recipient proves ownership. Direct transfer can't express "send to a phone number".
+## ADR-003 — Escrow + claim link instead of direct transfer *(amended — mechanism superseded by ADR-013)*
+**Decision:** funds route through a `SendEscrow` contract; recipient is unknown at send time and claims via an authorization delivered out-of-band.
+**Reason:** phone-number sending requires holding funds until the recipient proves entitlement to the link. Direct transfer can't express "send to a phone number".
 
-## ADR-004 — Supabase as an index, never a custodian
-**Decision:** Supabase stores `{escrowId, phoneHash, amount, status}` only.
-**Reason:** phone→claim lookup needs off-chain storage; the contract stays the only place funds exist. Keeps SECURITY.md surface small (no keys/PII in DB).
+## ADR-004 — Supabase as an index, never a custodian *(amended — lookup key changed by ADR-013)*
+**Decision:** Supabase stores `{escrowId, keyHash, amount, status}` only.
+**Reason:** claim lookup needs off-chain storage; the contract stays the only place funds exist. Keeps SECURITY.md surface small (no keys/PII in DB).
 
 ## ADR-005 — Foundry for contracts
 **Decision:** Foundry, not Hardhat.
@@ -32,9 +32,13 @@
 **Decision:** support AUSD exclusively in v1.
 **Reason:** the bounty specifies AUSD; it's live on Monad with ERC-3009 gasless transfer support; one token = one integration tested well.
 
-## ADR-009 — Claim = 6-digit code + claimant EIP-712 signature (not SMS OTP)
-**Decision:** escrow stores `codeHash`; claim link carries the code; `claim()` requires `keccak(code) == codeHash` AND an EIP-712 signature where recovered == msg.sender == payee. No SMS provider.
-**Reason:** phones hold no keys — every real system (Linkdrop, Umbra) binds to an out-of-band secret + signature. Twilio costs $0.05/verify, can't text unregistered numbers on trial, and is off-chain theater anyway. This design is two-factor on-chain, $0, and front-running fund-neutral. (See RESEARCH_TECH.md §3.)
+## ADR-009 — Claim authorization design *(SUPERSEDED by ADR-013)*
+**~~Decision:** escrow stores `codeHash`; claim link carries the code; `claim()` requires `keccak(code) == codeHash` AND an EIP-712 signature where recovered == msg.sender == payee. No SMS provider.~~
+**Superseded:** the 6-digit codeHash was brute-forceable (10⁶ off-chain guesses → attacker becomes a legitimate claimant), and `recovered == msg.sender == payee` meant a fresh recipient (zero MON) could never claim. See ADR-013.
+
+## ADR-013 — Linkdrop-style ephemeral link key (current design)
+**Decision:** the sender's app generates a 32-byte **ephemeral link key** client-side; the escrow stores its **address**; the link fragment holds the **private key**. `claim(id, payee, sig)` is **relayer-submitted** (server wallet pays gas; recipient needs zero MON) and requires the **link key's EIP-712 signature** over `Claim(escrowId, payee)` — recover(sig) == stored linkKey. The recipient's Mera passkey account is the payee.
+**Reason:** closes both flaws found in review: (1) no shared secret ever reaches calldata, so neither the relayer nor a mempool watcher can redirect funds (forgery requires the key); (2) the recipient is genuinely gasless. Possession of the link = ownership (documented cash analogy). Proven pattern: Linkdrop P2P. Client-side signing via `@noble/secp256k1` — the passkey account is the destination, the link key is the authorization.
 
 ## ADR-010 — Contract verifies with plain `ecrecover` (no ERC-1271 / P-256 precompile)
 **Decision:** SendEscrow uses OZ ECDSA.recover over an EIP-712 digest.

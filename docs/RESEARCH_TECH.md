@@ -31,7 +31,7 @@ import { toViemAccount } from "@category-labs/mera/viem";  // viem ≥2.28; NO e
 - Node `>=24` required (we have 24.14.1 ✓). Vercel functions runtime must be Node 24 — set `engines` / framework preset accordingly.
 - Cancellation is indistinguishable from failure (`PASSKEY_OPERATION_FAILED`); `.message` is not a stable contract — switch on `.code` only.
 - Browser-only: import only inside `"use client"` modules / dynamic import on click. Docs have zero SSR guidance.
-- No gas sponsorship/bundler anywhere — **senders pay their own gas** (they're the funded party); **recipients are gasless via the relayer-submitted claim** (v2 design, §3 — server wallet submits, payee signature binds the destination).
+- No gas sponsorship/bundler anywhere — **senders pay their own gas** (they're the funded party); **recipients are gasless via the relayer-submitted claim** (v3 design, §3 — the relayer only ever sees the link key's signature, never the key, so it cannot redirect).
 - **Monad quirk: gas charged = declared gasLimit, not gas used.** Always pass explicit, tight `gas` (viem estimates from RPC). Never use MetaMask-style "bump the limit" fallbacks.
 
 ### Remaining verified details (completeness addendum)
@@ -83,18 +83,18 @@ AUSD on Monad is a **LayerZero V2 OFT**: bridging is burn-and-mint via an OFT ad
 ## 2c. Nigeria off-ramp refresh (Oct 5 cross-check)
 Partner-model direction stands; specifics updated: **CBN opened a VASP regulatory sandbox in Aug 2026** and is building the licensing regime under **Payments System Vision 2028**, which treats fiat-backed stablecoins as monetary instruments with reserve-custody and "RegTech node" requirements. **cNGN** (SEC-authorized naira stablecoin) + the CBN sandbox belong in the production path named alongside Yellow Card/Busha/Quidax — more current, more judge-impressive. Busha API remains the closest integration option; Mercuryo still does not settle NGN.
 
-## 3. SendEscrow + claim-link design — **v2, redesigned after external review** (prior art: Linkdrop P2P, Umbra)
+## 3. SendEscrow + claim-link design — **v3, Linkdrop-style ephemeral link key** (prior art: Linkdrop P2P, Umbra)
 
-**v1's design had two real flaws caught in review (Oct 5):** (1) a 6-digit `codeHash` is brute-forceable off-chain in milliseconds — an attacker who finds the code becomes a *legitimate claimant* with their own signature, so the "two-factor" claim didn't exist; (2) `msg.sender == payee` means a brand-new recipient account (zero MON) can never claim, contradicting the "gasless recipient" promise. **v2 fixes both:**
+**Design history:** v1 (6-digit code + claimant sig) had two flaws caught in review — the codeHash was brute-forceable (10⁶ guesses → attacker becomes a legitimate claimant), and `msg.sender == payee` meant a fresh recipient (zero MON) could never claim. v2 fixed gas with a relayer but introduced a WORSE flaw: the relayer must put the secret in calldata (so it learns it), and since `payee` is attacker-chosen, the relayer could claim to itself with its own signature — "the payee signature proves the payee authorised themselves," which any actor can do. "Front-running is fund-neutral" was only ever true for verbatim replay. **v3 removes the shared secret entirely:**
 
-### v2 design (relayer-submitted, high-entropy link secret)
-- **Link secret = 32 random bytes** (128+ bits), generated client-side, living ONLY in the link fragment (`#s=<64 hex>`). On-chain commitment: `secretHash = keccak256(secret)`. Brute-forcing 2^128 is infeasible — knowledge of the secret genuinely gates the claim.
-- **Claims are relayer-submitted:** `claim(id, secret, payee, sig)` — `msg.sender` is senda's server wallet (pays gas); `payee` is the recipient's fresh Mera passkey account (zero MON needed); `sig` is the **payee's** EIP-712 signature over `Claim(escrowId, secretHash, payee)`. The destination is bound to the signer, NOT to the gas payer: a relayer can censor/delay but can never redirect; replaying mempool-observed calldata pays the same payee. (Mera beat preserved: the recipient still signs with their passkey — one tap.)
-- **phoneHash removed from the contract entirely.** The phone number is app-layer routing — where the link is *sent* — and never an on-chain access control. SECURITY.md and TEST_PLAN updated to say exactly that (v1's "a passkey from a different phone hash cannot claim" was false).
-- `NoEscrow()` error for nonexistent ids (v1 misleadingly reverted `AlreadyClaimed`).
-- `expiresAt` + permissionless `reclaim()` (relayer/keeper can run it — sender need not be online); `cancel()` sender-only. Same atomic-revert frozen/paused semantics as §2b.
-- Trust model: one server-wallet relayer can censor/delay, never steal. Production: ERC-4337 paymaster or redundant relayers — noted in the threat model.
-- Front-running/malleability/replay analysis unchanged where it was right: single-use flag + escrowId-in-typehash + EIP-712 domain (chainId+contract) + OZ `ECDSA` high-s rejection.
+### v3 design (ephemeral link key — the fragment holds a private key)
+- The sender's app generates a **32-byte ephemeral link key** client-side (`@noble/secp256k1`); the escrow stores its **address**; the link fragment (`#k=<64 hex>`) holds the **private key**.
+- **Claim authorization = the link key's EIP-712 signature** over `Claim(escrowId, payee)`, produced client-side in the recipient's browser (no gas, no wallet needed to sign). `claim(id, payee, sig)` — `msg.sender` is the relayer (server wallet, pays gas); contract checks `recover(digest) == e.linkKey` and pays `payee`.
+- **Redirect impossible:** neither the relayer nor a mempool watcher ever sees the private key — only its signature over a fixed payee. Forging a signature for a different destination requires the key. Front-running is genuinely fund-neutral: replay pays the same payee; forgery needs the key.
+- **Recipient gasless:** relayer submits; the link-key signature is free to produce. The recipient's **Mera passkey account is the destination** — the "fingerprint creates your wallet" beat is preserved (passkey = where funds land; link key = authorization).
+- **Possession = ownership:** whoever holds the link holds the key — a forwarded link is handing someone cash (documented Linkdrop analogy). Single-use flag + escrowId-in-typehash + EIP-712 domain (chainId+contract) + OZ ECDSA high-s rejection, as before.
+- `NoEscrow()` for nonexistent ids; `expiresAt` + permissionless `reclaim()`; `cancel()` sender-only; frozen/paused AUSD reverts atomically (§2b).
+- Trust model: the relayer can censor/delay, never redirect or steal (it never sees the key). Production: ERC-4337 paymaster or redundant relayers.
 - Demo tip unchanged: `ttl` ≈ 10 min, jump-cut with "+10 min" overlay for the reclaim beat (MIN_TTL stays 10 min — no altered-constants demo build).
 - Full contract sketch: [research/SendEscrow-sketch.sol](research/SendEscrow-sketch.sol) — feeds TASK-302 directly. Custom errors only. Reverts pay full declared gas on Monad — keep tests aware.
 
@@ -115,7 +115,7 @@ Partner-model direction stands; specifics updated: **CBN opened a VASP regulator
 ### Supabase (free tier)
 - 2 active projects, 500 MB DB, 50K MAU. **Free projects pause after 7 days inactivity** — irrelevant during the 8-day sprint; poke it weekly after.
 - New key scheme: `sb_publishable_…` (client, respects RLS) / `sb_secret_…` (server-only, bypasses RLS). `.env`: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY` (never `NEXT_PUBLIC_`).
-- `claims` table SQL + RLS: statuses `pending|claimed|cancelled`, indexes on phone_hash/status, **no anon INSERT/UPDATE/DELETE**, anon reads only through a `security definer` RPC `get_claim_by_escrow(p_escrow_id)` — exact SQL: [research/claims-table.sql](research/claims-table.sql) (run at TASK-403).
+- `claims` table SQL + RLS: statuses `pending|claimed|cancelled|expired`, indexes on key_hash/status, **no anon INSERT/UPDATE/DELETE**, anon reads only through a `security definer` RPC `get_claim_by_key(p_key_hash)` returning a projection — exact SQL: [research/claims-table.sql](research/claims-table.sql) (run at TASK-403).
 
 ### Vercel (Hobby)
 - 100 deploys/day, 100 GB transfer, 1M function invocations. **Fair-use policy explicitly allows this use** (no contest language; demo must stay fee-free/ad-free — it is).
@@ -136,7 +136,7 @@ Partner-model direction stands; specifics updated: **CBN opened a VASP regulator
 | # | Decision | Why |
 |---|---|---|
 | D1 | `ecrecover` over EIP-712 in SendEscrow | Mera accounts are plain EOAs (low-S secp256k1) |
-| D2 | 6-digit claim code (codeHash) + claimant sig | Two-factor claim, $0, no Twilio, front-run neutral |
+| D2 | Linkdrop-style ephemeral link key (32-byte private key in the fragment; claim authorized by its signature) | Supersedes the 6-digit code — a codeHash is brute-forceable, and a relayer-visible secret is stealable by the relayer/front-runners. Linkdrop shipped this pattern |
 | D3 | Escrow core stays plain `transferFrom`; ERC-3009 is only the sender-side gasless funding path (TASK-306) — see §2 and PITCH.md §3 | Agora's own mechanism, sponsor-recognizable |
 | D4 | Testnet-first full loop (faucet AUSD = 10k/call) | Free rehearsal before mainnet demo |
 | D5 | `open.er-api.com` for NGN | No key, NGN live, cacheable |
@@ -149,8 +149,9 @@ Partner-model direction stands; specifics updated: **CBN opened a VASP regulator
 - Demo story for Aurora: chainless funding (show Base/Solana source), Shield Incident API gating (we read the incident report), PDA sticky address. Prize is $5K **split across 3 winners**.
 
 ## 8. Security test matrix (feeds TASK-307; full checklist from research)
-**Events (added to sketch):** `Deposited(escrowId, sender, phoneHash, amount, expiresAt)`, `Claimed(escrowId, payee, amount)`, `Cancelled(escrowId, sender, amount)`, `Reclaimed(escrowId, amount)` — the Envio indexer (TASK-605) and Nansen labels panel consume these; state-variable scraping is rejected. The static-analysis "events-in-loop" triage note applies to any event emissions inside loops we might add later — none exist in v1.
-- Unit (~19): deposit happy/zero/insufficient-allowance/ttl-min; claim happy/wrong-code/stolen-sig/malleated-sig/replay-other-escrow/after-expiry/**exact-expiry-boundary**/double-claim/wrong-codeHash-in-sig; cancel only-sender/after-claim; reclaim only-after-expiry/twice; reentrant-mock-token; fee-on-transfer assumption doc.
+**Events (sketch v3):** `Deposited(escrowId, sender, linkKey, amount, expiresAt)`, `Claimed(escrowId, payee, amount, relayer)`, `Cancelled(escrowId, sender, amount)`, `Reclaimed(escrowId, amount)` — the Envio indexer (TASK-605) and Nansen labels panel consume these; state-variable scraping is rejected. The static-analysis "events-in-loop" triage note applies to any event emissions inside loops we might add later — none exist in v3.
+**Core authorization test set (v3 link-key design):** forged sig for a different payee → `BadLinkKeySignature`; relayer redirect attempt (relayer signs for itself) → fails (recover == stored linkKey, not relayer); replay across escrows/chains → domain+escrowId block; malleated/high-s → OZ ECDSA rejects; nonexistent id → `NoEscrow`; single-use double claim → revert.
+- Unit (~21): deposit happy/zero/insufficient-allowance/ttl-min/zero-linkKey; claim happy/forged-sig/**relayer-redirect-attempt**/malleated-sig/replay-other-escrow/after-expiry/**exact-expiry-boundary**/double-claim/no-escrow; cancel only-sender/after-claim/no-escrow; reclaim only-after-expiry/twice; reentrant-mock-token; fee-on-transfer assumption doc.
 - Fuzz (3): deposit-claim round trip; no-claim-without-valid-sig; wrong-code-never-claims.
 - Invariants (3, handler-based): `invariant_Solvency_BalanceGeEscrowedTotal` (>= — donation-safe), `invariant_NoDoublePayout` (per-id state machine, terminal states sticky), `invariant_SenderNeverLosesMoreThanDeposited`.
 - Fork (2): raw AUSD 6-decimal behavior on Monad testnet fork; **frontend-derived-signature parity test** (produces the EIP-712 digest exactly as the Next.js client does — catches domain name/version/chainId mismatches, the #1 integration bug).

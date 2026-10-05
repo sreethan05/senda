@@ -1,15 +1,16 @@
--- claims table + RLS — v2, redesigned after external review (run at TASK-403).
--- Supabase is an index only; it NEVER holds funds or keys.
+-- claims table + RLS — v3, Linkdrop-style link-key design (run at TASK-403).
+-- Supabase is an index only; it NEVER holds funds, keys, or the link key.
 -- Writes happen exclusively from server routes using SUPABASE_SECRET_KEY (bypasses RLS).
 --
--- Enumeration fix: anon lookups are keyed by keccak256(linkSecret) — a 128-bit
--- value that never appears on-chain — NOT by sequential escrow_id. Rows return
--- a minimal projection only (no phone_hash, no raw sender address).
+-- Enumeration fix: anon lookups are keyed by keccak256(linkKey) — a 128-bit
+-- value that never appears on-chain and is never sent to the relayer — NOT by
+-- sequential escrow_id. Rows return a minimal projection only (no raw
+-- addresses, no key material).
 
 create table public.claims (
   id                uuid primary key default gen_random_uuid(),
   escrow_id         text not null unique,
-  secret_hash       text not null unique,      -- keccak256 hex of the 32-byte link secret
+  key_hash          text not null unique,      -- keccak256 hex of the ephemeral link key
   amount            bigint not null check (amount > 0),
   currency          text not null default 'AUSD',
   status            text not null default 'pending'
@@ -20,34 +21,34 @@ create table public.claims (
   settled_at        timestamptz                 -- claimed_at OR cancelled_at
 );
 
-create index claims_secret_hash_idx on public.claims (secret_hash);
-create index claims_status_idx      on public.claims (status);
+create index claims_key_hash_idx on public.claims (key_hash);
+create index claims_status_idx   on public.claims (status);
 
 -- Lock the table down: no anon policies for INSERT/UPDATE/DELETE, and no
 -- blanket SELECT. Anon (the claim page) reads ONLY through this security
--- definer RPC, keyed by the link's secret hash, returning a PROJECTION —
+-- definer RPC, keyed by the link key's hash, returning a PROJECTION —
 -- knowing an escrow_id alone (sequential, public on-chain) reveals nothing.
-create or replace function public.get_claim_by_secret(p_secret_hash text)
+create or replace function public.get_claim_by_key(p_key_hash text)
 returns table (
   amount      bigint,
   currency    text,
   status      text,
   created_at  timestamptz,
-  sender_hint text                            -- e.g. '+1 ••• 4821', not the raw address
+  sender_hint text                            -- e.g. '0x••••4821' — last 4 hex of the sender address
 )
 language sql
 security definer
 set search_path = public
 as $$
   select c.amount, c.currency, c.status, c.created_at,
-         '••' || right(c.sender_address, 4)
+         '0x••••' || right(c.sender_address, 4)
   from public.claims c
-  where c.secret_hash = p_secret_hash
+  where c.key_hash = p_key_hash
   limit 1;
 $$;
 
-grant execute on function public.get_claim_by_secret(text) to anon, authenticated;
+grant execute on function public.get_claim_by_key(text) to anon, authenticated;
 revoke all on public.claims from anon;
 
--- Client usage: supabase.rpc('get_claim_by_secret', { p_secret_hash })
+-- Client usage: supabase.rpc('get_claim_by_key', { p_key_hash })
 -- (status flips to 'expired' when the relayer/reclaimer observes expiry on-chain.)

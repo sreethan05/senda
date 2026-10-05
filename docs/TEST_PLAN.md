@@ -7,7 +7,7 @@
 - Dev burner mode works behind env flag and is inert in production build
 
 ## Send Flow
-- User can send a valid amount; a 32-byte link secret is generated client-side and lives ONLY in the link fragment
+- User can send a valid amount; a 32-byte ephemeral link key is generated client-side and its private half lives ONLY in the link fragment
 - Amount > balance is rejected with a clear error
 - Amount ≤ 0 / non-numeric / empty phone rejected before any transaction
 - Deposit shows pending → success with monadscan link; failure shows retry
@@ -28,7 +28,7 @@
 - deposit → cancel happy path
 - claim twice reverts; cancel after claim reverts
 - claim with wrong signature reverts
-- claim with sig over wrong codeHash reverts
+- claim with a signature over a different payee reverts `BadLinkKeySignature` (relayer-redirect attempt included)
 - amounts with 6-decimal precision round-trip exactly
 - **frozen/paused states (first-class):** claim while AUSD `isAccountFrozen(claimant)` reverts atomically, escrow stays pending, retry succeeds after unfreeze; same for `isTransferPaused()` on deposit/claim/cancel/reclaim (fork tests with mocked OFT behavior)
 - **expiry boundary:** claim at exact `expiresAt` succeeds; reclaim one second later succeeds; `ttl < 10 min` reverts

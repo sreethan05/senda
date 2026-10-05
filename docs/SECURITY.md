@@ -16,18 +16,19 @@
 
 ## Relayer (server wallet)
 - The relayer can censor/delay claims, never redirect them (payee sig). Demo ships ONE relayer key with gas MON only — it holds no user funds and cannot move escrow contents anywhere but the signed payee.
-- Relayer endpoint validates: secret format (32 bytes), payee address checksum, sig length — before spending gas. Rate-limited per IP; refuses to relay for escrows already claimed (pre-check to avoid wasted gas).
+- Relayer endpoint validates: payee address checksum, sig length, escrow not already claimed — before spending gas. Rate-limited per IP. The relayer API receives (id, payee, sig) only — never the link key.
 
 ## Input
 - Validate all input server-side: phone (E.164), amount (> 0, ≤ balance), escrow id format.
 - Validate every request body in API routes.
 
 ## Authorization
-- Supabase row-level security on; claim records readable only via server routes with the link's id + phone hash.
+- Supabase row-level security on; claim records readable only via server routes keyed by keccak256(linkKey) — a 128-bit value that never appears on-chain and is never sent to the relayer.
+- Row projection only: anon reads return amount/status/sender_hint — never raw addresses or key material.
 - Users can only cancel their own escrows (enforced in contract, mirrored in API).
 
 ## Data
-- Store salted phone HASHES, never raw numbers.
+- Store **keccak256(linkKey)** for lookups — never the key itself, never raw phone numbers (the phone number routes where the link is sent and is not stored).
 - No names, emails, or device identifiers in the database beyond what the flow requires.
 
 ## Before Deploy Checklist

@@ -87,7 +87,7 @@ Font: **Inter** (UI/amounts, tabular-nums) + **Plus Jakarta Sans 700/800** (head
 
 ## 9. Security posture (for the write-up + ack3 scan)
 
-Ship: threat-model page (actors, trust boundaries, EIP-712 flow), Slither+Aderyn triaged report, Foundry suite (~25 unit + 3 fuzz + 3 invariants incl. `balance >= sum(unclaimed)` solvency + 2 mainnet-fork tests incl. frontend-signature parity — catches EIP-712 domain mismatches, the #1 integration bug), `forge coverage` stat on the final slide. Frontend: claim code in **URL fragment** (never sent to server), rate-limited claim lookup, RLS everywhere, pinned deps. ack3 = Ackee team (audited Monad itself, 237 audits/0 hacks) — a clean triaged-report submission maximizes the $15K scan's value.
+Ship: threat-model page (actors, trust boundaries, EIP-712 flow), Slither+Aderyn triaged report, Foundry suite (~21 unit + 3 fuzz + 3 invariants incl. `balance >= sum(unclaimed)` solvency + 3 mainnet-fork tests incl. frontend-signature parity — catches EIP-712 domain mismatches, the #1 integration bug — and the frozen-AUSD atomic-revert test), `forge coverage` stat on the final slide. Frontend: the **ephemeral link key lives only in the URL fragment** (never sent to any server — the relayer sees only id+payee+signature), rate-limited claim lookup keyed by key-hash, RLS everywhere, pinned deps. ack3 = Ackee team (audited Monad itself, 237 audits/0 hacks) — a clean triaged-report submission maximizes the $15K scan's value.
 
 ## 10. What we CUT (scope discipline)
 

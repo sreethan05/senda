@@ -2,7 +2,7 @@
 
 Work ONE task at a time: implement → test → review → commit → mark complete. Target: **working product by Oct 11, video + submission Oct 12, deadline Oct 13.**
 
-> **Strategy deltas from Oct 5 deep research (see PITCH.md):** (1) Position as **settlement RAIL, not retail app** — own Daimo/Nala graveyard in write-up + video. (2) Receipt compares WU *and* "typical app $0-fee/1–3% hidden spread" (TASK-601). (3) **ERC-3009 = sender-side gasless path only** (escrow core stays plain `transferFrom` — TASK-306, deferred). (4) Claim secret is now **32 bytes of high entropy in the URL fragment** (6-digit code was brute-forceable — sketch v2); claims are **relayer-submitted** (recipient has zero MON). (5) Contract **emits 4 events** (indexer + Nansen panel depend on them). (6) Contract guards: SafeERC20, `amount > 0`, `ttl >= 10 min`, `NoEscrow`; frozen/paused AUSD reverts atomically (nothing strands). (7) Ship on vercel.app (valid rpId) — no custom domain; **pick the exact project name before creating demo passkeys**. (8) Demo armor: pinned Mera, non-PRF fallback, backup video, rehearsed on exact devices. **SCOPE ORDER (external review): nothing below Phase 5 gets built until the core loop is green on testnet — ERC-3009, encrypted note, Aurora, Envio, Nansen are all behind that gate.**
+> **Strategy deltas from Oct 5 deep research (see PITCH.md):** (1) Position as **settlement RAIL, not retail app** — own Daimo/Nala graveyard in write-up + video. (2) Receipt compares WU *and* "typical app $0-fee/1–3% hidden spread" (TASK-601). (3) **ERC-3009 = sender-side gasless path only** (escrow core stays plain `transferFrom` — TASK-306, deferred). (4) Claim authorization is a **Linkdrop-style ephemeral link key** (32-byte private key in the URL fragment; escrow stores its address; claim sig made by that key — relayer/redirect-proof, sketch v3). (5) Contract **emits 4 events** (indexer + Nansen panel depend on them). (6) Contract guards: SafeERC20, `amount > 0`, `ttl >= 10 min`, `NoEscrow`; frozen/paused AUSD reverts atomically (nothing strands). (7) Ship on vercel.app (valid rpId) — no custom domain; **pick the exact project name before creating demo passkeys**. (8) Demo armor: pinned Mera, non-PRF fallback, backup video, rehearsed on exact devices. **SCOPE ORDER (external review): nothing below Phase 5 gets built until the core loop is green on testnet — ERC-3009, encrypted note, Aurora, Envio, Nansen are all behind that gate.**
 
 ## Phase 1: Setup (Day 1 — Oct 4/5)
 - [x] TASK-101 Init Next.js + TypeScript + Tailwind in repo
@@ -19,7 +19,7 @@ Work ONE task at a time: implement → test → review → commit → mark compl
 
 ## Phase 3: Contracts (Days 3–4 — Oct 6/7)
 - [ ] TASK-301 Foundry init in `contracts/`, point at Monad testnet + mainnet
-- [ ] TASK-302 `SendEscrow.sol` (design per RESEARCH_TECH.md §3 + sketch): `depositTo(phoneHash, codeHash, amount, ttl)` pulls AUSD via SafeERC20; `claim(id, code, sig)` — codeHash match + EIP-712 `Claim(escrowId, codeHash, payee)` with `ecrecover == msg.sender`; `cancel(id)` sender-only; `reclaim(id)` for expiry. **Emits Deposited/Claimed/Cancelled/Reclaimed** (indexer + Nansen panel depend on them). Guards: `amount > 0`, `ttl >= 10 min`. Frozen/paused AUSD reverts atomically (nothing strands) — see sketch notes.
+- [ ] TASK-302 `SendEscrow.sol` (design per RESEARCH_TECH.md §3 + sketch v3): app generates a 32-byte ephemeral **link key** client-side; `depositTo(linkKey, amount, ttl)` pulls AUSD via SafeERC20; `claim(id, payee, sig)` is **relayer-submitted** — requires the **link key's EIP-712 signature** over `Claim(escrowId, payee)` (recover(sig) == stored linkKey); `cancel(id)` sender-only; `reclaim(id)` for expiry. **Emits Deposited/Claimed/Cancelled/Reclaimed.** Guards: `amount > 0`, `ttl >= 10 min`, `linkKey != 0`, `NoEscrow`. Frozen/paused AUSD reverts atomically (nothing strands).
 - [ ] TASK-303 Foundry tests: deposit, claim, cancel, double-claim, wrong-signature claim, reentrancy
 - [ ] TASK-304 Deploy to testnet 10143, verify, run full manual loop
 - [ ] TASK-305 Deploy to mainnet 143, verify, pin address in env
@@ -29,13 +29,13 @@ Work ONE task at a time: implement → test → review → commit → mark compl
 ## Phase 4: Send flow (Day 5 — Oct 8)
 - [ ] TASK-401 Amount input + phone input (E.164 validation, NGN preview)
 - [ ] TASK-402 Approve + deposit transaction flow (pending → success + explorer link → error)
-- [ ] TASK-403 Server route: store `{escrowId, phoneHash, amount, status}` in Supabase
-- [ ] TASK-404 Generate claim link (`/claim/[id]`) + WhatsApp/SMS share deep link
+- [ ] TASK-403 Server route: store `{escrowId, keyHash, amount, status}` in Supabase (keyHash = keccak256 of the link key — the only lookup key anon can use)
+- [ ] TASK-404 Generate claim link (`/claim/[id]#k=<linkKey hex>`) + WhatsApp/SMS share deep link — the link key's private half lives ONLY in the fragment
 
 ## Phase 5: Claim flow (Day 6 — Oct 9)
 - [ ] TASK-501 Claim landing page from link (amount, sender, big claim button)
 - [ ] TASK-502 Passkey creation at claim time (Mera) for brand-new recipients
-- [ ] TASK-503 Claim flow (relayer-submitted — recipient has zero MON): claim page from link → Mera passkey creates payee account → payee signs `Claim(id, secretHash, payee)` → POST /api/claim → **server relayer wallet** submits `claim(id, secret, payee, sig)` → receipt screen (settlement time, fee, comparison)
+- [ ] TASK-503 Claim flow (relayer-submitted — recipient has zero MON): claim page from link (reads link key from fragment) → Mera passkey creates payee account → app signs `Claim(escrowId, payee)` WITH THE LINK KEY client-side (@noble/secp256k1, no gas) → POST /api/claim → **server relayer wallet** submits `claim(id, payee, sig)` → receipt screen (settlement time, fee, comparison)
 - [ ] TASK-504 Sender cancel flow + refund receipt
 - [ ] TASK-505 History list with status chips
 - [ ] TASK-506 (Mera bounty) Encrypted remittance note: memo sealed with PRF-derived AES-256-GCM key (Secret Vault format), decryptable only by recipient's passkey; per-corridor salt namespacing (`senda:US->NG`)

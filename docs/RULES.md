@@ -21,7 +21,7 @@
 - ALL contract interactions go through `src/lib/chain/` — never call contracts from components.
 - Every transaction shows: pending state → success state with explorer link (monadscan) → error state with retry.
 - Amounts are parsed with correct decimals (AUSD = 6). Validate: amount > 0, ≤ balance, phone in E.164 format.
-- Contracts: checks-effects-interactions; only sender can cancel; only the passkey bound to the phone hash can claim.
+- Contracts: checks-effects-interactions; only sender can cancel; claims authorized by the ephemeral link key's signature (sketch v3) — the relayer cannot redirect, and the link key never leaves the URL fragment.
 - Test contracts on Monad testnet (10143) before ANY mainnet deployment.
 - NEVER commit private keys or mnemonics. Dev burner key lives only in `.env.local` (gitignored) and holds trivial amounts.
 
