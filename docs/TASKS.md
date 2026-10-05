@@ -11,7 +11,7 @@ Work ONE task at a time: implement → test → review → commit → mark compl
 - [ ] TASK-104 Acquire small amount of MON for mainnet gas (no faucet exists — buy/bridge)
 
 ## Phase 2: Auth (Day 2 — Oct 5)
-- [ ] TASK-201 Integrate Mera: passkey creation → derived account
+- [x] TASK-201 Integrate Mera: passkey creation → derived account
 - [ ] TASK-202 Login/logout state, protected routes
 - [ ] TASK-203 Dev-only burner wallet mode behind env flag
 - [ ] TASK-204 Balance display: read AUSD balance of connected account
