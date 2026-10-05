@@ -14,7 +14,7 @@ Work ONE task at a time: implement → test → review → commit → mark compl
 - [x] TASK-201 Integrate Mera: passkey creation → derived account
 - [x] TASK-202 Login/logout state, protected routes
 - [x] TASK-203 Dev-only burner wallet mode behind env flag
-- [ ] TASK-204 Balance display: read AUSD balance of connected account
+- [x] TASK-204 Balance display: read AUSD balance of connected account
 - [ ] TASK-205 Get test AUSD via testnet faucet (`requestFunds` on `0xd236c18D274E54FAccC3dd9DDA4b27965a73ee6C` mints 10,000 AUSD on 10143)
 
 ## Phase 3: Contracts (Days 3–4 — Oct 6/7)

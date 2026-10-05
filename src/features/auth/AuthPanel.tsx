@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import BalanceCard from "@/features/balance/BalanceCard";
 import { explorerAddressUrl, shortAddress } from "@/lib/config";
 import { useAuth } from "./AuthProvider";
 
@@ -36,7 +37,9 @@ export default function AuthPanel() {
 
   if (status === "ready" && address !== null) {
     return (
-      <div className="rounded-2xl bg-card p-6 shadow-sm">
+      <div className="flex flex-col gap-4">
+        <BalanceCard address={address} />
+        <div className="rounded-2xl bg-card p-6 shadow-sm">
         <p className="text-sm text-muted">
           Signed in as
           {authMethod === "burner" && (
@@ -61,6 +64,7 @@ export default function AuthPanel() {
           <button type="button" onClick={lock} className="min-h-[48px] text-sm font-medium text-muted">
             Lock
           </button>
+        </div>
         </div>
       </div>
     );
