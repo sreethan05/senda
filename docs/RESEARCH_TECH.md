@@ -103,7 +103,7 @@ Partner-model direction stands; specifics updated: **CBN opened a VASP regulator
 ## 4. Foundry on Monad
 
 - **Foundry ≥ v1.8.0 required** (Monad execution rules). Template: `forge init --template monad-developers/foundry-monad`.
-- `foundry.toml`: `network = "monad"`, `eth_rpc_url = "https://testnet-rpc.monad.xyz"`, `chain_id = 10143` (testnet profile; mainnet = 143 / `https://rpc.monad.xyz`). Verification metadata: `metadata = true`, `metadata_hash = "none"`, `use_literal_content = true`.
+- `foundry.toml`: `network = "monad"`, `eth_rpc_url = "https://testnet-rpc.monad.xyz"`, `chain_id = 10143` (testnet profile; mainnet = 143 / `https://rpc.monad.xyz`). Verification metadata: `bytecode_hash = "none"`, `use_literal_content = true`. (Corrected Oct 5: forge 1.8.4 rejects RESEARCH's draft keys `metadata`/`metadata_hash` — `forge config` confirms `bytecode_hash`/`cbor_metadata`.)
 - Deploy via keystore: `cast wallet import monad-deployer --private-key $KEY` → `forge script script/Deploy.s.sol --rpc-url ... --broadcast` (forge **script** is more reliable than `forge create` on Monad per community reports).
 - Verify (no API key): `forge verify-contract <ADDR> src/SendEscrow.sol:SendEscrow --chain 10143 --verifier sourcify --verifier-url https://sourcify-api-monad.blockvision.org/`
 - Testnet MON faucet: `faucet.monad.xyz` (chain 10143). Mainnet MON: buy/bridge (no faucet exists).
