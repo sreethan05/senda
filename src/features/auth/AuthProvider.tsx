@@ -20,20 +20,27 @@ import {
   type EvmAddress,
   type MeraAccount,
 } from "@/lib/chain/mera";
+import { getDevBurnerAccount, isDevBurnerAvailable } from "@/lib/chain/devWallet";
 import { ACCOUNT_MISMATCH_MESSAGE, meraErrorMessage } from "./errors";
 
 export type AuthStatus = "loading" | "locked" | "ready";
 export type BusyOp = "create" | "login" | null;
+export type AuthMethod = "passkey" | "burner" | null;
 
 interface AuthContextValue {
   status: AuthStatus;
   /** Live address when ready; cached address when locked; null on a fresh device. */
   address: EvmAddress | null;
+  authMethod: AuthMethod;
+  /** True only in local dev with NEXT_PUBLIC_DEV_BURNER_KEY set — always false in prod. */
+  devBurnerAvailable: boolean;
   hasCachedCredential: boolean;
   busyOp: BusyOp;
   error: string | null;
   create: () => Promise<void>;
   login: () => Promise<void>;
+  /** DEV ONLY — sign in with the local burner key, no passkey ceremony. */
+  useBurner: () => void;
   /** Log out: ends the in-memory session, keeps the device credential for one-tap login. */
   lock: () => void;
   /** Forget this device: ends the session AND drops the stored credential. */
@@ -55,17 +62,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const sessionRef = useRef<MeraAccount | null>(null);
   const [status, setStatus] = useState<AuthStatus>("loading");
   const [address, setAddress] = useState<EvmAddress | null>(null);
+  const [authMethod, setAuthMethod] = useState<AuthMethod>(null);
   const [hasCachedCredential, setHasCachedCredential] = useState(false);
   const [busyOp, setBusyOp] = useState<BusyOp>(null);
   const [error, setError] = useState<string | null>(null);
 
-  /* eslint-disable react-hooks/set-state-in-effect -- mount-time hydration from localStorage (external system), runs once */
-  useEffect(() => {
+  const devBurnerAvailable = isDevBurnerAvailable();
+
+  const hydrateFromCache = useCallback(() => {
     const cached = readCachedAccount();
     setAddress(cached?.address ?? null);
     setHasCachedCredential(cached !== null);
     setStatus("locked");
   }, []);
+
+  /* eslint-disable react-hooks/set-state-in-effect -- mount-time hydration from localStorage (external system), runs once */
+  useEffect(() => {
+    hydrateFromCache();
+  }, [hydrateFromCache]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const create = useCallback(async () => {
@@ -76,6 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const account = await createAccount();
       sessionRef.current = account;
       setAddress(account.address);
+      setAuthMethod("passkey");
       setHasCachedCredential(true);
       setStatus("ready");
       const next = safeNextPath();
@@ -101,6 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       sessionRef.current = account;
       setAddress(account.address);
+      setAuthMethod("passkey");
       setHasCachedCredential(true);
       setStatus("ready");
       const next = safeNextPath();
@@ -112,6 +128,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [busyOp, router]);
 
+  const useBurner = useCallback(() => {
+    setError(null);
+    if (!isDevBurnerAvailable()) {
+      setError("Dev burner unavailable — local dev only.");
+      return;
+    }
+    try {
+      const burner = getDevBurnerAccount();
+      sessionRef.current = null;
+      setAuthMethod("burner");
+      setAddress(burner.address);
+      setStatus("ready");
+      const next = safeNextPath();
+      if (next !== null) router.replace(next);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Something went wrong. Try again.");
+    }
+  }, [router]);
+
   const lock = useCallback(() => {
     const account = sessionRef.current;
     sessionRef.current = null;
@@ -121,9 +156,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch {
         // Session already ended — still move to the locked UI.
       }
-      setStatus("locked");
     }
-  }, []);
+    setAuthMethod(null);
+    hydrateFromCache();
+  }, [hydrateFromCache]);
 
   const forgetDevice = useCallback(() => {
     lock();
@@ -139,16 +175,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       status,
       address,
+      authMethod,
+      devBurnerAvailable,
       hasCachedCredential,
       busyOp,
       error,
       create,
       login: doLogin,
+      useBurner,
       lock,
       forgetDevice,
       clearError,
     }),
-    [status, address, hasCachedCredential, busyOp, error, create, doLogin, lock, forgetDevice, clearError],
+    [status, address, authMethod, devBurnerAvailable, hasCachedCredential, busyOp, error, create, doLogin, useBurner, lock, forgetDevice, clearError],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -13,11 +13,14 @@ export default function AuthPanel() {
   const {
     status,
     address,
+    authMethod,
+    devBurnerAvailable,
     hasCachedCredential,
     busyOp,
     error,
     create,
     login,
+    useBurner,
     lock,
     forgetDevice,
     clearError,
@@ -34,7 +37,12 @@ export default function AuthPanel() {
   if (status === "ready" && address !== null) {
     return (
       <div className="rounded-2xl bg-card p-6 shadow-sm">
-        <p className="text-sm text-muted">Signed in as</p>
+        <p className="text-sm text-muted">
+          Signed in as
+          {authMethod === "burner" && (
+            <span className="ml-2 rounded-md bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-800">DEV</span>
+          )}
+        </p>
         <a
           href={explorerAddressUrl(address)}
           target="_blank"
@@ -92,6 +100,19 @@ export default function AuthPanel() {
           </>
         )}
       </div>
+      {devBurnerAvailable && (
+        <div className="mt-4 rounded-xl bg-amber-50 p-4">
+          <p className="text-xs font-semibold text-amber-800">DEV ONLY — local burner, never real funds.</p>
+          <button
+            type="button"
+            onClick={useBurner}
+            disabled={busy}
+            className="mt-2 min-h-[48px] w-full rounded-xl text-sm font-semibold text-amber-800 disabled:opacity-50"
+          >
+            Use dev burner
+          </button>
+        </div>
+      )}
       {error !== null && (
         <div className="mt-4 rounded-xl bg-red-50 p-4" role="alert">
           <p className="text-sm text-danger">{error}</p>
