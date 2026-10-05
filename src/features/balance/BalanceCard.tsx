@@ -3,6 +3,7 @@
 import { formatUsd } from "@/lib/format";
 import type { EvmAddress } from "@/lib/chain/mera";
 import { useAusdBalance } from "./useAusdBalance";
+import FaucetButton from "./FaucetButton";
 
 /** Dominant-number balance (DESIGN.md Home) with loading / error+retry / empty states. */
 export default function BalanceCard({ address }: { address: EvmAddress }) {
@@ -31,7 +32,12 @@ export default function BalanceCard({ address }: { address: EvmAddress }) {
           <p className="mt-1 font-display text-4xl font-extrabold tabular-nums text-ink">
             {formatUsd(value)}
           </p>
-          {value === 0n && <p className="mt-1 text-sm text-muted">No funds yet.</p>}
+          {value === 0n && (
+            <>
+              <p className="mt-1 text-sm text-muted">No funds yet.</p>
+              <FaucetButton address={address} onFunded={reload} />
+            </>
+          )}
         </>
       )}
     </div>

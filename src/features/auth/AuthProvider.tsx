@@ -11,16 +11,22 @@ import {
   type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
+import type { WalletClient } from "viem";
 import {
   clearStoredCredential,
   createAccount,
+  createWalletClientForSession,
   lockAccount,
   login,
   readCachedAccount,
   type EvmAddress,
   type MeraAccount,
 } from "@/lib/chain/mera";
-import { getDevBurnerAccount, isDevBurnerAvailable } from "@/lib/chain/devWallet";
+import {
+  createDevWalletClient,
+  getDevBurnerAccount,
+  isDevBurnerAvailable,
+} from "@/lib/chain/devWallet";
 import { ACCOUNT_MISMATCH_MESSAGE, meraErrorMessage } from "./errors";
 
 export type AuthStatus = "loading" | "locked" | "ready";
@@ -41,6 +47,8 @@ interface AuthContextValue {
   login: () => Promise<void>;
   /** DEV ONLY — sign in with the local burner key, no passkey ceremony. */
   useBurner: () => void;
+  /** Signing client for the active method (passkey session or burner), or null when locked. */
+  getSignerClient: () => WalletClient | null;
   /** Log out: ends the in-memory session, keeps the device credential for one-tap login. */
   lock: () => void;
   /** Forget this device: ends the session AND drops the stored credential. */
@@ -147,8 +155,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [router]);
 
-  const lock = useCallback(() => {
+  /** Signing client for writes (TASK-402 reuses this) — null when locked. */
+  const getSignerClient = useCallback((): WalletClient | null => {
     const account = sessionRef.current;
+    if (account !== null) return createWalletClientForSession(account.session);
+    if (authMethod === "burner" && isDevBurnerAvailable()) return createDevWalletClient();
+    return null;
+  }, [authMethod]);
+
+  const lock = useCallback(() => {    const account = sessionRef.current;
     sessionRef.current = null;
     if (account !== null) {
       try {
@@ -183,11 +198,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       create,
       login: doLogin,
       useBurner,
+      getSignerClient,
       lock,
       forgetDevice,
       clearError,
     }),
-    [status, address, authMethod, devBurnerAvailable, hasCachedCredential, busyOp, error, create, doLogin, useBurner, lock, forgetDevice, clearError],
+    [status, address, authMethod, devBurnerAvailable, hasCachedCredential, busyOp, error, create, doLogin, useBurner, getSignerClient, lock, forgetDevice, clearError],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
