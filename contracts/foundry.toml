@@ -17,6 +17,10 @@ use_literal_content = true
 monad_testnet = "https://testnet-rpc.monad.xyz"
 monad = "https://rpc.monad.xyz"
 
+[invariant]
+runs = 16
+depth = 8
+
 [profile.mainnet]
 eth_rpc_url = "https://rpc.monad.xyz"
 chain_id = 143

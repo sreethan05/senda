@@ -27,10 +27,10 @@ Work ONE task at a time: implement → test → review → commit → mark compl
 - [ ] TASK-307 Threat-model page + Slither/Aderyn triaged report + Foundry suite per RESEARCH_TECH §8 (unit incl. expiry-boundary, fuzz, solvency invariant, mainnet-fork signature-parity test **+ `fork_Claim_RevertsWhenFrozen_Mock`**)
 
 ## Phase 4: Send flow (Day 5 — Oct 8)
-- [ ] TASK-401 Amount input + phone input (E.164 validation, NGN preview)
-- [ ] TASK-402 Approve + deposit transaction flow (pending → success + explorer link → error)
+- [x] TASK-401 Amount input + phone input (E.164 validation, NGN preview)
+- [x] TASK-402 Approve + deposit transaction flow (pending → success + explorer link → error)
 - [ ] TASK-403 Server route: store `{escrowId, keyHash, amount, status}` in Supabase (keyHash = keccak256 of the link key — the only lookup key anon can use)
-- [ ] TASK-404 Generate claim link (`/claim/[id]#k=<linkKey hex>`) + WhatsApp/SMS share deep link — the link key's private half lives ONLY in the fragment
+- [x] TASK-404 Generate claim link (`/claim/[id]#k=<linkKey hex>`) + WhatsApp/SMS share deep link — the link key's private half lives ONLY in the fragment
 
 ## Phase 5: Claim flow (Day 6 — Oct 9)
 - [ ] TASK-501 Claim landing page from link (amount, sender, big claim button)
