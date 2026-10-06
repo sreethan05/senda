@@ -14,6 +14,7 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Reference snippets in the docs corpus are illustrative, not app code.
     "docs/**",
+    ".kilo/**",
   ]),
 ]);
 
