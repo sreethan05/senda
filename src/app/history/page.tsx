@@ -13,10 +13,10 @@ import { formatUsd } from "@/lib/format";
 /** Transfer history (TASK-505) + cancel (TASK-504). Source: on-chain events. */
 
 const STATUS_STYLES: Record<MyEscrow["status"], { label: string; cls: string }> = {
-  pending: { label: "Awaiting claim", cls: "bg-amber-100 text-amber-800" },
-  claimed: { label: "Claimed", cls: "bg-emerald-100 text-emerald-800" },
-  cancelled: { label: "Cancelled", cls: "bg-stone-200 text-stone-600" },
-  expired: { label: "Expired — refundable", cls: "bg-stone-200 text-stone-600" },
+  pending: { label: "Awaiting claim", cls: "bg-primary/15 text-primary" },
+  claimed: { label: "Claimed", cls: "bg-emerald-400/15 text-emerald-300" },
+  cancelled: { label: "Cancelled", cls: "bg-line text-muted" },
+  expired: { label: "Expired — refundable", cls: "bg-line text-muted" },
 };
 
 function History() {

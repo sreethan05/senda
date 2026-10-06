@@ -54,7 +54,7 @@ export function LinkShare(params: { claimUrl: string; txHash: string | null }) {
       </a>
       <a
         href={smsUrl}
-        className="flex min-h-[52px] items-center justify-center gap-2 rounded-full border border-stone-300 bg-white text-base font-semibold text-ink active:opacity-80"
+        className="flex min-h-[52px] items-center justify-center gap-2 rounded-full border border-line bg-card text-base font-semibold text-ink active:opacity-80"
       >
         <Smartphone size={18} /> Send by SMS
       </a>
@@ -62,7 +62,7 @@ export function LinkShare(params: { claimUrl: string; txHash: string | null }) {
         <button
           type="button"
           onClick={nativeShare}
-          className="flex min-h-[48px] items-center justify-center gap-2 rounded-full border border-stone-300 bg-white text-sm font-semibold text-ink active:opacity-80"
+          className="flex min-h-[48px] items-center justify-center gap-2 rounded-full border border-line bg-card text-sm font-semibold text-ink active:opacity-80"
         >
           <Share2 size={16} /> More
         </button>
@@ -73,7 +73,7 @@ export function LinkShare(params: { claimUrl: string; txHash: string | null }) {
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
           }}
-          className="flex min-h-[48px] items-center justify-center gap-2 rounded-full border border-stone-300 bg-white text-sm font-semibold text-ink active:opacity-80"
+          className="flex min-h-[48px] items-center justify-center gap-2 rounded-full border border-line bg-card text-sm font-semibold text-ink active:opacity-80"
         >
           {copied ? <Check size={16} /> : <Copy size={16} />} {copied ? "Copied" : "Copy link"}
         </button>

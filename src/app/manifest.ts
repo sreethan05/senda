@@ -9,8 +9,8 @@ export default function manifest(): MetadataRoute.Manifest {
       "Cross-border money transfers that feel like texting. Passkey-only, instant settlement, fees you can verify on-chain.",
     start_url: "/",
     display: "standalone",
-    background_color: "#FAFAF9",
-    theme_color: "#10B981",
+    background_color: "#122B45",
+    theme_color: "#F5B301",
     icons: [
       { src: "/icon.svg", type: "image/svg+xml", sizes: "any" },
     ],

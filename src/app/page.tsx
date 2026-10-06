@@ -31,7 +31,7 @@ function HomeInner() {
           </Link>
           <Link
             href="/history"
-            className="mt-3 flex min-h-[48px] w-full items-center justify-center rounded-full border border-stone-300 bg-white text-sm font-semibold text-ink active:opacity-80"
+            className="mt-3 flex min-h-[48px] w-full items-center justify-center rounded-full border border-line bg-card text-sm font-semibold text-ink active:opacity-80"
           >
             Your transfers
           </Link>

@@ -146,7 +146,7 @@ function SendFlow() {
                   key={q}
                   type="button"
                   onClick={() => setDollars(String(q))}
-                  className="min-h-[36px] rounded-full border border-stone-300 px-4 text-sm font-semibold text-ink active:opacity-70"
+                  className="min-h-[36px] rounded-full border border-line px-4 text-sm font-semibold text-ink active:opacity-70"
                 >
                   ${q}
                 </button>
@@ -203,10 +203,10 @@ function SendFlow() {
                 placeholder="803 123 4567"
                 value={localPhone}
                 onChange={(e) => setLocalPhone(e.target.value.replace(/[^\d ]/g, ""))}
-                className="min-h-[48px] w-full rounded-lg border border-stone-300 px-3 text-base tabular-nums text-ink focus:border-primary focus:outline-none"
+                className="min-h-[48px] w-full rounded-lg border border-line px-3 text-base tabular-nums text-ink focus:border-primary focus:outline-none"
               />
             </div>
-            <div className="mt-4 border-t border-stone-200 pt-3 text-sm">
+            <div className="mt-4 border-t border-line pt-3 text-sm">
               <CostBlock amount={amount} feeLabel={feeLabel} rate={rate} />
             </div>
           </div>
@@ -231,7 +231,7 @@ function SendFlow() {
             <p className="mt-1 text-center text-sm text-muted">
               to {COUNTRY.dial} {localPhone}
             </p>
-            <div className="mt-4 border-t border-stone-200 pt-3 text-sm">
+            <div className="mt-4 border-t border-line pt-3 text-sm">
               <CostBlock amount={amount} feeLabel={feeLabel} rate={rate} />
             </div>
             <p className="mt-3 text-center text-xs text-muted">

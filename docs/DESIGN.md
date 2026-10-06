@@ -11,16 +11,16 @@ Modern, minimal, warm. Consumer fintech (Wise-class discipline: the cost block i
 ## Icons & assets
 **Lucide** (matches Inter's 24px grid). One unDraw illustration max. Wordmark = typed lowercase "senda" — no AI-generated logo. Favicon/PWA icons: one 1024px mark → RealFaviconGenerator + PWABuilder maskable pipeline.
 
-## Colors
+## Colors (Ink & Gold — locked Oct 5 after user picked from 3 rendered palettes; logo = senda wordmark + gold arrow)
 | Role | Value |
 |---|---|
-| Primary (send / confirm) | `#10B981` emerald — THE one green; never decorative |
-| Background | `#FAFAF9` warm white |
-| Text | `#1C1917` |
-| Muted text | `#78716C` |
-| Accent (arrival / success) | `#F59E0B` warm amber — one celebratory element only (confetti XOR checkmark, never both) |
-| Danger | `#DC2626` |
-| Card surface | `#FFFFFF` |
+| Primary (send / confirm) | `#F5B301` gold on navy — THE action color; never decorative |
+| Background | `#122B45` deep navy (dark-first identity) |
+| Text (`ink`) | `#F4F7FB` |
+| Muted text | `#93A9C4` |
+| Accent (arrival / success) | `#F5B301` gold — the dot; one celebratory element only |
+| Danger | `#FF7A70` |
+| Card surface | `#1B3A5C` · borders `--color-line` `#2C4A6E` · surfaces `#16334F` · on-primary text `#122B45` |
 
 ## The sacred cost block (Wise pattern)
 The SAME 4-line block appears at every reconsideration point — send screen, confirm, receipt:

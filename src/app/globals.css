@@ -1,13 +1,17 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-primary: #10b981;
-  --color-background: #fafaf9;
-  --color-ink: #1c1917;
-  --color-muted: #78716c;
-  --color-accent: #f59e0b;
-  --color-danger: #dc2626;
-  --color-card: #ffffff;
+  /* Ink & Gold identity (locked Oct 5 — see DESIGN.md) */
+  --color-primary: #f5b301;
+  --color-on-primary: #122b45;
+  --color-background: #122b45;
+  --color-surface: #16334f;
+  --color-ink: #f4f7fb;
+  --color-muted: #93a9c4;
+  --color-accent: #f5b301;
+  --color-danger: #ff7a70;
+  --color-card: #1b3a5c;
+  --color-line: #2c4a6e;
 
   --font-sans: var(--font-inter);
   --font-display: var(--font-jakarta);
