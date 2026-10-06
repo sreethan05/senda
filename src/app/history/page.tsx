@@ -26,6 +26,7 @@ function History() {
   const [cancelling, setCancelling] = useState<bigint | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  /* eslint-disable react-hooks/set-state-in-effect -- on-chain event scan on mount, guarded */
   const load = useCallback(async () => {
     if (address === null) return;
     try {
@@ -38,6 +39,7 @@ function History() {
   useEffect(() => {
     void load();
   }, [load]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   async function doCancel(id: bigint) {
     const signer = getSignerClient();
