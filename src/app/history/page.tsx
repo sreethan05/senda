@@ -6,7 +6,7 @@ import { ArrowLeft, LoaderCircle } from "lucide-react";
 import RequireAuth from "@/features/auth/RequireAuth";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { useAusdBalance } from "@/features/balance/useAusdBalance";
-import { getMyEscrows, cancelEscrow, type MyEscrow } from "@/lib/chain/escrow";
+import { getMyEscrows, cancelEscrow, reclaimEscrow, type MyEscrow } from "@/lib/chain/escrow";
 import { explorerTxUrl } from "@/lib/config";
 import { formatUsd } from "@/lib/format";
 
@@ -16,22 +16,27 @@ const STATUS_STYLES: Record<MyEscrow["status"], { label: string; cls: string }> 
   pending: { label: "Awaiting claim", cls: "bg-primary/15 text-primary" },
   claimed: { label: "Claimed", cls: "bg-emerald-400/15 text-emerald-300" },
   cancelled: { label: "Cancelled", cls: "bg-line text-muted" },
-  expired: { label: "Expired — refundable", cls: "bg-line text-muted" },
+  expired: { label: "Expired — return available", cls: "bg-line text-muted" },
   refunded: { label: "Refunded", cls: "bg-line text-muted" },
+  complete: { label: "Complete", cls: "bg-line text-muted" },
 };
 
 function History() {
   const { address, getSignerClient } = useAuth();
   const { reload: refetchBalance } = useAusdBalance(address);
   const [items, setItems] = useState<MyEscrow[] | null>(null);
+  const [nextOffset, setNextOffset] = useState<number | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [cancelling, setCancelling] = useState<bigint | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   /* eslint-disable react-hooks/set-state-in-effect -- on-chain event scan on mount, guarded */
-  const load = useCallback(async () => {
+  const load = useCallback(async (offset = 0) => {
     if (address === null) return;
     try {
-      setItems(await getMyEscrows(address));
+      const page = await getMyEscrows(address, offset);
+      setItems((current) => offset === 0 || current === null ? page.items : [...current, ...page.items]);
+      setNextOffset(page.nextOffset);
     } catch {
       setError("Couldn't load your transfers — pull to retry.");
     }
@@ -53,6 +58,32 @@ function History() {
       refetchBalance();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Cancel failed — try again.");
+    } finally {
+      setCancelling(null);
+    }
+  }
+
+  async function loadMore() {
+    if (nextOffset === null || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      await load(nextOffset);
+    } finally {
+      setLoadingMore(false);
+    }
+  }
+
+  async function doReclaim(id: bigint) {
+    const signer = getSignerClient();
+    if (signer === null) return;
+    setCancelling(id);
+    setError(null);
+    try {
+      await reclaimEscrow({ signer, id });
+      await load();
+      refetchBalance();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Refund failed — try again.");
     } finally {
       setCancelling(null);
     }
@@ -134,9 +165,30 @@ function History() {
                   {cancelling === it.id ? "Cancelling…" : "Cancel & get back"}
                 </button>
               )}
+              {it.status === "expired" && (
+                <button
+                  type="button"
+                  onClick={() => doReclaim(it.id)}
+                  disabled={cancelling !== null}
+                  className="mt-3 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-full border border-primary/40 text-sm font-semibold text-primary disabled:opacity-50"
+                >
+                  {cancelling === it.id && <LoaderCircle size={14} className="animate-spin" />}
+                  {cancelling === it.id ? "Returning funds…" : "Return expired funds"}
+                </button>
+              )}
             </li>
           ))}
         </ul>
+      )}
+      {nextOffset !== null && (
+        <button
+          type="button"
+          onClick={loadMore}
+          disabled={loadingMore}
+          className="mt-4 flex min-h-[48px] items-center justify-center rounded-full border border-line text-sm font-semibold text-muted disabled:opacity-50"
+        >
+          {loadingMore ? "Loading transfers…" : "Load older transfers"}
+        </button>
       )}
     </main>
   );

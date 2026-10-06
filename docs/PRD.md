@@ -15,20 +15,20 @@ A cross-border money app where the sender types a phone number, hits send, and t
 
 ## Core Features
 1. **Passkey authentication** (Mera) — sign in with fingerprint; no seed phrase, no extension, no custody backend.
-2. **Send to a phone number** — enter amount + recipient phone; funds locked in an escrow contract on Monad; a claim link is generated for SMS/WhatsApp.
+2. **Send to a phone number** — enter amount + recipient phone; funds lock in an escrow contract on Monad; the app opens WhatsApp or SMS with a claim link and the entered number prefilled. The sender reviews and sends the message.
 3. **Claim flow** — recipient opens the link, creates a passkey in one tap, funds release instantly.
 4. **Receipts that win the argument** — every transfer shows a comparison: "Western Union: 6.4%, 1–5 days. senda: $0.01, 0.8s." Local currency (NGN) shown alongside USD.
 
 ## MVP
 - Passkey signup / login (Mera)
 - AUSD balance display
-- Send flow: amount + phone → escrow deposit → claim link (shareable via WhatsApp/SMS deep link)
+- Send flow: amount + phone → escrow deposit → claim link (shareable via WhatsApp/SMS deep link; sender confirms delivery)
 - Claim flow: link → passkey creation → AUSD withdrawal to recipient's passkey account
-- Transaction history
+- Transaction history from escrow state and emitted events
 - Cost & speed comparison screen
 
 ## Out of Scope (v1)
-- Real fiat off-ramp (cash-out is mocked in the demo; Mercuryo noted as production path)
+- Real fiat off-ramp (cash-out is mocked in the demo; a licensed partner integration is still required)
 - KYC / AML flows
 - Native mobile app (mobile-first PWA instead)
 - Multi-currency display beyond USD + one demo corridor currency

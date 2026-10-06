@@ -38,6 +38,7 @@ function chainById(id: number): Chain {
 const chainId = Number(process.env.NEXT_PUBLIC_CHAIN_ID ?? monadTestnet.id);
 
 const activeChain = chainById(chainId);
+const escrowDeploymentBlockRaw = process.env.NEXT_PUBLIC_ESCROW_DEPLOYMENT_BLOCK;
 
 export const config = {
   chain: activeChain,
@@ -54,6 +55,9 @@ export const config = {
   escrowAddress: (process.env.NEXT_PUBLIC_ESCROW_ADDRESS || undefined) as
     | `0x${string}`
     | undefined,
+  escrowDeploymentBlock: escrowDeploymentBlockRaw && /^\d+$/.test(escrowDeploymentBlockRaw)
+    ? BigInt(escrowDeploymentBlockRaw)
+    : null,
   isTestnet: chainId === monadTestnet.id,
 };
 

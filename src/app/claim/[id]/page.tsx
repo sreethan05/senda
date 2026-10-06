@@ -8,6 +8,7 @@ import { config } from "@/lib/config";
 import { getPublicClient } from "@/lib/chain/client";
 import { signClaimAuthorization } from "@/lib/chain/linkKey";
 import { getEscrowOutcome } from "@/lib/chain/escrow";
+import { waitForClaimConfirmation } from "@/lib/chain/escrow";
 import { BankPayout } from "@/features/claim/BankPayout";
 
 /**
@@ -25,6 +26,7 @@ type Phase =
   | "noEscrow"
   | "claimed"
   | "cancelled"
+  | "unavailable"
   | "expired"
   | "ready"
   | "busy"
@@ -157,6 +159,8 @@ export default function ClaimPage() {
       if (!res.ok || data.ok !== true || data.txHash === undefined) {
         throw new Error(data.error ?? "Claim failed — try again");
       }
+      setBusyText("Waiting for the transfer to confirm…");
+      await waitForClaimConfirmation(BigInt(params.id), data.txHash as `0x${string}`);
       const seconds = (Date.now() - started) / 1000;
       try {
         const { getAusdBalance } = await import("@/lib/chain/ausd");
@@ -203,11 +207,11 @@ export default function ClaimPage() {
       </Shell>
     );
   }
-  if (phase === "claimed") {
+  if (phase === "unavailable") {
     return (
       <Shell>
-        <p className="font-display text-xl font-bold text-ink">Already claimed</p>
-        <p className="mt-2 text-sm text-muted">The money in this link has been claimed.</p>
+        <p className="font-display text-xl font-bold text-ink">This link is no longer available</p>
+        <p className="mt-2 text-sm text-muted">It may have been claimed, cancelled, or refunded.</p>
       </Shell>
     );
   }
@@ -226,7 +230,7 @@ export default function ClaimPage() {
       <Shell>
         <p className="font-display text-xl font-bold text-ink">This link expired</p>
         <p className="mt-2 text-sm text-muted">
-          The sender has been refunded — ask them to send it again.
+          The claim window has ended. The sender can return the funds from their transfer history; ask them to send it again if needed.
         </p>
       </Shell>
     );

@@ -36,7 +36,7 @@ function SendFlow() {
   const [localPhone, setLocalPhone] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<{ id: bigint; url: string; txHash: string } | null>(null);
+  const [result, setResult] = useState<{ id: bigint; url: string; txHash: string; recipientPhone: string } | null>(null);
 
   const amount = draftToMicroAusd(dollars);
   const balanceBig = balance ?? 0n;
@@ -84,12 +84,57 @@ function SendFlow() {
       });
       setBusy("Creating your claim link…");
       const keyHash = await keyHashFor(linkKey.privateKeyHex);
-      // TASK-403: persist {escrowId, keyHash, amount, status} to Supabase when
-      // env creds are present — the link itself is self-sufficient (id + #k=).
-      void keyHash;
+      // Persistence is an index only; the claim key itself remains in the URL fragment.
+      try {
+        if (!signer.account) throw new Error("Sender account is unavailable");
+        const senderProof = await signer.signTypedData({
+          account: signer.account,
+          domain: {
+            name: "senda history",
+            version: "1",
+            chainId: config.chain.id,
+            verifyingContract: config.escrowAddress,
+          },
+          types: {
+            HistoryRecord: [
+              { name: "escrowId", type: "uint256" },
+              { name: "amount", type: "uint96" },
+              { name: "linkKeyAddress", type: "address" },
+              { name: "keyHash", type: "bytes32" },
+              { name: "depositTxHash", type: "bytes32" },
+              { name: "expiresAt", type: "uint64" },
+            ],
+          },
+          primaryType: "HistoryRecord",
+          message: {
+            escrowId: receipt.escrowId,
+            amount,
+            linkKeyAddress: linkKey.address,
+            keyHash,
+            depositTxHash: receipt.depositTxHash,
+            expiresAt: receipt.expiresAt,
+          },
+        });
+        await fetch("/api/claims", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            escrowId: receipt.escrowId.toString(),
+            sender: address,
+            amount: amount.toString(),
+            linkKeyAddress: linkKey.address,
+            keyHash,
+            depositTxHash: receipt.depositTxHash,
+            expiresAt: receipt.expiresAt.toString(),
+            senderProof,
+          }),
+        });
+      } catch {
+        // The on-chain transfer and self-contained claim link remain valid without the index.
+      }
       const base = typeof window !== "undefined" ? window.location.origin : "";
       const url = `${base}/claim/${receipt.escrowId.toString()}#k=${linkKey.privateKeyHex}`;
-      setResult({ id: receipt.escrowId, url, txHash: receipt.depositTxHash });
+      setResult({ id: receipt.escrowId, url, txHash: receipt.depositTxHash, recipientPhone: e164 });
       setStep("done");
       refetch();
     } catch (e) {
@@ -107,7 +152,7 @@ function SendFlow() {
           <ShieldCheck size={16} className="text-primary" />
           <p className="text-sm font-semibold text-primary">Money is locked in escrow</p>
         </div>
-        <LinkShare claimUrl={result.url} txHash={result.txHash} />
+        <LinkShare claimUrl={result.url} txHash={result.txHash} recipientPhone={result.recipientPhone} />
         <Link
           href="/history"
           className="mt-6 flex min-h-[48px] items-center justify-center text-sm font-semibold text-muted"

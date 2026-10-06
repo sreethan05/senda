@@ -12,8 +12,8 @@ Mera (`@category-labs/mera`) — WebAuthn passkey with PRF extension → locally
 - **Contracts:** Foundry project in `contracts/`. One main contract: `SendEscrow.sol`.
 
 ## Database
-Supabase PostgreSQL — an **index only**, never a custodian:
-- `claims` table: escrow id, key hash (keccak256 of the link key — the anon lookup key), amount, status (`pending | claimed | cancelled | expired`), created/settled timestamps.
+Supabase PostgreSQL is an **index only**, never a custodian. The send API persists verified escrow metadata (including only a hash of the link key); paged history reads use the server-side index. Set up the table with [the claims migration](../supabase/migrations/202610060001_claims.sql) and configure server-side keys as described in [Supabase setup](SUPABASE_SETUP.md). If Supabase is not configured, history falls back to direct chain reads:
+- `claims` table: escrow id, key hash (keccak256 of the link key), amount, deposit transaction, expiry, sender, status, and timestamps.
 - No private keys, no mnemonics, no link keys, no raw phone numbers — the phone number routes where the link is *sent* (app layer only) and is never stored.
 
 ## Money Flow
@@ -24,7 +24,7 @@ Sender (passkey EOA)
    ▼
 SendEscrow.sol (Monad 143) ── funds locked against the link key's ADDRESS
    │
-   ├─ 2. app stores {escrowId, keyHash} in Supabase, renders claim link
+   ├─ 2. server verifies and indexes {escrowId, keyHash, amount, status}, then renders claim link
    │     link = /claim/[id]#k=<link key hex>   (private key lives ONLY in the fragment)
    ▼
 Recipient opens link
@@ -37,7 +37,10 @@ senda relayer (server wallet — pays gas, learns only id+payee+signature)
 AUSD lands in the recipient's passkey account (~1s finality)
 ```
 **Why the relayer can't steal:** it never sees the link key — only a signature over a fixed payee. Forging a signature for any other destination requires the key. Replaying observed calldata pays the same payee. Possession of the link = possession of the key = ownership (documented Linkdrop analogy).
-Cancel: sender can `cancel(id)` before claim → refund. Expiry: `reclaim(id)` bounces unclaimed funds to the sender after `ttl` — nothing can strand. Full design rationale: [RESEARCH_TECH.md](RESEARCH_TECH.md) §3.
+Cancel: sender can `cancel(id)` before claim → refund. After expiry, funds remain in escrow until anyone submits `reclaim(id)`; the sender can do this from transfer history. Full design rationale: [RESEARCH_TECH.md](RESEARCH_TECH.md) §3.
+
+## Naira payout status
+The claim screen currently provides a clearly labeled local estimate only. It does not send a payout request. A production Yellow Card integration needs an onboarded partner account and pre-funded balance; the published crypto rails do not list AUSD on Monad. The escrow AUSD must have a supported, funded settlement route before a real payout can be enabled.
 
 ## Deployment
 Vercel (preview → production). Contracts deployed to Monad testnet first (`10143`), then mainnet; addresses pinned in `.env`.
@@ -64,5 +67,6 @@ senda/
 - UI components contain NO chain/database logic.
 - All contract calls go through `src/lib/chain/` services — one module per contract.
 - Supabase writes happen only in server routes/API actions, never from client components.
+- Supabase secret keys stay server-side; history records are sender-signature verified and on-chain transaction checked.
 - Addresses and chain IDs come from env, never hardcoded.
 - The escrow contract is the only place user funds ever exist.

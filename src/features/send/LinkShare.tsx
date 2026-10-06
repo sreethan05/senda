@@ -11,11 +11,11 @@ import { explorerTxUrl } from "@/lib/config";
  * WhatsApp / SMS anchors, then copy.
  */
 
-export function LinkShare(params: { claimUrl: string; txHash: string | null }) {
+export function LinkShare(params: { claimUrl: string; txHash: string | null; recipientPhone: string }) {
   const [copied, setCopied] = useState(false);
   const message = `You've been sent money via senda — claim it here (don't share this link, it's yours only): ${params.claimUrl}`;
-  const waUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
-  const smsUrl = `sms:?&body=${encodeURIComponent(message)}`;
+  const waUrl = `https://wa.me/${params.recipientPhone}?text=${encodeURIComponent(message)}`;
+  const smsUrl = `sms:${params.recipientPhone}?body=${encodeURIComponent(message)}`;
 
   async function nativeShare() {
     if (typeof navigator !== "undefined" && "share" in navigator) {
@@ -36,8 +36,8 @@ export function LinkShare(params: { claimUrl: string; txHash: string | null }) {
       <div className="rounded-2xl bg-card p-5 shadow-sm">
         <p className="text-sm font-semibold text-ink">Send the link to your recipient</p>
         <p className="mt-1 text-xs leading-relaxed text-muted">
-          This link is the money — anyone who opens it can claim. Send it only to them
-          (WhatsApp or SMS). The claim key lives inside the link, never on our servers.
+          We&apos;ve filled in the number you entered. Your messaging app will open with this link ready;
+          review and send it yourself. Anyone with the link can claim the money.
         </p>
         <div className="mt-3 break-all rounded-xl bg-surface p-3 font-mono text-[11px] leading-relaxed text-muted">
           {params.claimUrl}
@@ -50,13 +50,13 @@ export function LinkShare(params: { claimUrl: string; txHash: string | null }) {
         rel="noreferrer"
         className="flex min-h-[52px] items-center justify-center gap-2 rounded-full bg-primary text-base font-semibold text-white active:opacity-80"
       >
-        <MessageCircle size={20} /> Share on WhatsApp
+        <MessageCircle size={20} /> Open WhatsApp
       </a>
       <a
         href={smsUrl}
         className="flex min-h-[52px] items-center justify-center gap-2 rounded-full border border-line bg-card text-base font-semibold text-ink active:opacity-80"
       >
-        <Smartphone size={18} /> Send by SMS
+        <Smartphone size={18} /> Open SMS
       </a>
       <div className="grid grid-cols-2 gap-3">
         <button

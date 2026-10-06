@@ -114,7 +114,7 @@ Partner-model direction stands; specifics updated: **CBN opened a VASP regulator
 
 ### Supabase (free tier)
 - 2 active projects, 500 MB DB, 50K MAU. **Free projects pause after 7 days inactivity** — irrelevant during the 8-day sprint; poke it weekly after.
-- New key scheme: `sb_publishable_…` (client, respects RLS) / `sb_secret_…` (server-only, bypasses RLS). `.env`: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY` (never `NEXT_PUBLIC_`).
+- New key scheme: `sb_publishable_…` (client, respects RLS) / `sb_secret_…` (server-only, bypasses RLS). This app uses only the server-side index: `SUPABASE_URL` + `SUPABASE_SECRET_KEY` (never `NEXT_PUBLIC_`).
 - `claims` table SQL + RLS: statuses `pending|claimed|cancelled|expired`, indexes on key_hash/status, **no anon INSERT/UPDATE/DELETE**, anon reads only through a `security definer` RPC `get_claim_by_key(p_key_hash)` returning a projection — exact SQL: [research/claims-table.sql](research/claims-table.sql) (run at TASK-403).
 
 ### Vercel (Hobby)

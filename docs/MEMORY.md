@@ -1,7 +1,7 @@
 # Project Memory
 
 ## Current Status
-Phase 2+3 verified (unit 22/22, fuzz 3/3, invariants running), Phase 4 send flow COMPLETE (TASK-401/402/404): keypad, phone input, cost block, link-key generation, approve+deposit, claim-link share. Phase 5 COMPLETE + **END-TO-END PROVEN ON TESTNET (Oct 5)**: approve tx 0xb990…cb6, deposit $100 into escrow#1 (0x4604…3b9d, linkKey 0xEcC1…fB2Cc), relayer API 200 (claim tx 0x703a…c8f5), payee received exactly 100000000 micro (=$100.00). Escrow: 0x963e40e3cbd3a196b814afcfd4bf39ff1656dc76. Sender/relayer wallet 0xc3AB…708F holds ~1 MON + ~9,900 AUSD; deployer 0xdFd3…32B3 ~4 MON. Supabase persistence (TASK-403) deferred until creds exist — link is self-sufficient.
+Phase 2+3 verified (unit 22/22, fuzz 3/3, invariants running), Phase 4 send flow COMPLETE (TASK-401/402/403/404): keypad, phone input, cost block, link-key generation, approve+deposit, signed server-side Supabase history index (when configured), claim-link share. WhatsApp/SMS opens with number and link prefilled; sender confirms send. Phase 5 COMPLETE + **END-TO-END PROVEN ON TESTNET (Oct 5)**: approve tx 0xb990…cb6, deposit $100 into escrow#1 (0x4604…3b9d, linkKey 0xEcC1…fB2Cc), relayer API 200 (claim tx 0x703a…c8f5), payee received exactly 100000000 micro (=$100.00). Escrow: 0x963e40e3cbd3a196b814afcfd4bf39ff1656dc76. Sender/relayer wallet 0xc3AB…708F holds ~1 MON + ~9,900 AUSD; deployer 0xdFd3…32B3 ~4 MON.
 Full research phase CLOSED (18 agents total: 6 strategy + 2 feasibility + 4 tech + 6 depth waves). Master strategy in PITCH.md. Build unblocked — Phase 1-2 next.
 
 ## Key strategy facts (Oct 5 waves)

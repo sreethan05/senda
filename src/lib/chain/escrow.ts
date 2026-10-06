@@ -68,9 +68,41 @@ const escrowAbi = [
   },
 ] as const;
 
+const escrowEventAbi = {
+  Deposited: escrowAbi[1],
+  Claimed: {
+    type: "event",
+    name: "Claimed",
+    inputs: [
+      { name: "escrowId", type: "uint256", indexed: true },
+      { name: "payee", type: "address", indexed: true },
+      { name: "amount", type: "uint96", indexed: false },
+      { name: "relayer", type: "address", indexed: true },
+    ],
+  },
+  Cancelled: {
+    type: "event",
+    name: "Cancelled",
+    inputs: [
+      { name: "escrowId", type: "uint256", indexed: true },
+      { name: "sender", type: "address", indexed: true },
+      { name: "amount", type: "uint96", indexed: false },
+    ],
+  },
+  Reclaimed: {
+    type: "event",
+    name: "Reclaimed",
+    inputs: [
+      { name: "escrowId", type: "uint256", indexed: true },
+      { name: "amount", type: "uint96", indexed: false },
+    ],
+  },
+} as const;
+
 export interface DepositResult {
   escrowId: bigint;
   depositTxHash: `0x${string}`;
+  expiresAt: bigint;
 }
 
 /**
@@ -137,6 +169,7 @@ export async function approveAndDeposit(params: {
 
   // 3. recover escrowId from the Deposited event
   let escrowId = 0n;
+  let expiresAt = 0n;
   for (const log of depositReceipt.logs) {
     try {
       const events = decodeEventLog({
@@ -146,6 +179,7 @@ export async function approveAndDeposit(params: {
       });
       if (events.eventName === "Deposited") {
         escrowId = events.args.escrowId;
+        expiresAt = events.args.expiresAt;
         break;
       }
     } catch {
@@ -154,7 +188,7 @@ export async function approveAndDeposit(params: {
   }
   if (escrowId === 0n) throw new Error("Deposit succeeded but escrow id was not found in events");
 
-  return { escrowId, depositTxHash: depositHash };
+  return { escrowId, depositTxHash: depositHash, expiresAt };
 }
 
 export { explorerTxUrl };
@@ -253,20 +287,31 @@ export async function getEscrowOutcome(id: bigint): Promise<TerminalOutcome | nu
 export interface MyEscrow {
   id: bigint;
   amount: bigint;
-  /** pending | claimed | cancelled | expired | refunded */
-  status: "pending" | "claimed" | "cancelled" | "expired" | "refunded";
+  /** Current terminal state, resolved from contract events and state. */
+  status: "pending" | "claimed" | "cancelled" | "expired" | "refunded" | "complete";
   depositTxHash: `0x${string}` | null;
   expiresAt: bigint;
 }
 
+export interface MyEscrowPage {
+  items: MyEscrow[];
+  nextOffset: number | null;
+}
+
 /**
- * History reads: iterate escrow ids 1..nextId and filter by sender, then map
- * each to its terminal outcome from events (falling back to storage if the
- * RPC won't serve getLogs). Ids are sequential and small in v1.
+ * Use Supabase paging when available, otherwise use indexed logs from the
+ * configured contract deployment block. For older local configurations that
+ * omit the deployment block, retain a direct state-read fallback.
  */
-export async function getMyEscrows(senderAddress: `0x${string}`): Promise<MyEscrow[]> {
-  if (!config.escrowAddress) return [];
+export async function getMyEscrows(senderAddress: `0x${string}`, offset = 0): Promise<MyEscrowPage> {
+  if (!config.escrowAddress) return { items: [], nextOffset: null };
+  const stored = await readStoredEscrows(senderAddress, offset);
+  if (stored !== null) return stored;
   const client = getPublicClient();
+  if (config.escrowDeploymentBlock !== null) {
+    const events = await readEscrowEvents(senderAddress, config.escrowDeploymentBlock);
+    return { items: events, nextOffset: null };
+  }
   const nextId = (await client.readContract({
     address: config.escrowAddress,
     abi: escrowReadAbi,
@@ -295,13 +340,67 @@ export async function getMyEscrows(senderAddress: `0x${string}`): Promise<MyEscr
           : terminal === "reclaimed"
             ? "refunded"
             : claimed || amount === 0n
-              ? "claimed" // fallback when getLogs is unavailable
+              ? "complete" // storage alone can't identify the terminal action
               : expiresAt < now
                 ? "expired"
                 : "pending";
     out.push({ id, amount, status, depositTxHash: null, expiresAt });
   }
-  return out.sort((a, b) => (a.id < b.id ? 1 : -1));
+  return { items: out.sort((a, b) => (a.id < b.id ? 1 : -1)), nextOffset: null };
+}
+
+async function readEscrowEvents(senderAddress: `0x${string}`, fromBlock: bigint): Promise<MyEscrow[]> {
+  if (!config.escrowAddress) return [];
+  const client = getPublicClient();
+  const depositedLogs = await client.getLogs({
+    address: config.escrowAddress,
+    event: escrowEventAbi.Deposited,
+    args: { sender: senderAddress },
+    fromBlock,
+    toBlock: "latest",
+  });
+  const [claimedLogs, cancelledLogs, reclaimedLogs] = await Promise.all([
+    client.getLogs({ address: config.escrowAddress, event: escrowEventAbi.Claimed, fromBlock, toBlock: "latest" }),
+    client.getLogs({ address: config.escrowAddress, event: escrowEventAbi.Cancelled, fromBlock, toBlock: "latest" }),
+    client.getLogs({ address: config.escrowAddress, event: escrowEventAbi.Reclaimed, fromBlock, toBlock: "latest" }),
+  ]);
+  const terminal = new Map<bigint, MyEscrow["status"]>();
+  for (const log of claimedLogs) terminal.set(log.args.escrowId!, "claimed");
+  for (const log of cancelledLogs) terminal.set(log.args.escrowId!, "cancelled");
+  for (const log of reclaimedLogs) terminal.set(log.args.escrowId!, "refunded");
+  const now = BigInt(Math.floor(Date.now() / 1000));
+  return depositedLogs.map((log) => {
+    const id = log.args.escrowId!;
+    const expiresAt = log.args.expiresAt!;
+    return {
+      id,
+      amount: log.args.amount!,
+      status: terminal.get(id) ?? (expiresAt < now ? "expired" : "pending"),
+      depositTxHash: log.transactionHash ?? null,
+      expiresAt,
+    };
+  }).sort((a, b) => (a.id < b.id ? 1 : -1));
+}
+
+/** Use the server-side indexed history when configured; otherwise read the chain. */
+async function readStoredEscrows(senderAddress: `0x${string}`, offset: number): Promise<MyEscrowPage | null> {
+  const response = await fetch(`/api/claims?sender=${encodeURIComponent(senderAddress)}&offset=${offset}`);
+  if (response.status === 503) return null;
+  if (!response.ok) throw new Error("Couldn't load your transfers — try again.");
+  const page = (await response.json()) as {
+    items: Array<{ id: string; amount: string; status: MyEscrow["status"]; depositTxHash: `0x${string}` | null; expiresAt: string }>;
+    hasMore: boolean;
+  };
+  return {
+    items: page.items.map((row) => ({
+      id: BigInt(row.id),
+      amount: BigInt(row.amount),
+      status: row.status,
+      depositTxHash: row.depositTxHash,
+      expiresAt: BigInt(row.expiresAt),
+    })),
+    nextOffset: page.hasMore ? offset + page.items.length : null,
+  };
 }
 
 /** Sender-only refund (TASK-504). */
@@ -323,11 +422,63 @@ export async function cancelEscrow(params: {
     },
   ] as const;
   const cancelData = encodeFunctionData({ abi: cancelAbi, functionName: "cancel", args: [params.id] });
-  return params.signer.sendTransaction({
+  const hash = await params.signer.sendTransaction({
     chain: config.chain,
     account,
     to: config.escrowAddress,
     data: cancelData,
     gas: await paddedGas({ account: account.address, to: config.escrowAddress, data: cancelData }),
   });
+  const receipt = await getPublicClient().waitForTransactionReceipt({ hash });
+  if (receipt.status !== "success") throw new Error("Cancel failed on-chain — try again");
+  await syncStoredStatus(params.id, hash);
+  return hash;
+}
+
+/** Anyone may trigger the expired escrow's automatic return to its sender. */
+export async function reclaimEscrow(params: {
+  signer: WalletClient;
+  id: bigint;
+}): Promise<`0x${string}`> {
+  if (!config.escrowAddress) throw new Error("Escrow not deployed");
+  const account = params.signer.account;
+  if (!account) throw new Error("Signer has no account attached");
+  const reclaimAbi = [{
+    type: "function",
+    name: "reclaim",
+    stateMutability: "nonpayable",
+    inputs: [{ name: "id", type: "uint256" }],
+    outputs: [],
+  }] as const;
+  const data = encodeFunctionData({ abi: reclaimAbi, functionName: "reclaim", args: [params.id] });
+  const hash = await params.signer.sendTransaction({
+    chain: config.chain,
+    account,
+    to: config.escrowAddress,
+    data,
+    gas: await paddedGas({ account: account.address, to: config.escrowAddress, data }),
+  });
+  const receipt = await getPublicClient().waitForTransactionReceipt({ hash });
+  if (receipt.status !== "success") throw new Error("Refund failed on-chain — try again");
+  await syncStoredStatus(params.id, hash);
+  return hash;
+}
+
+/** Wait until a relayed claim is confirmed before showing the recipient success. */
+export async function waitForClaimConfirmation(id: bigint, hash: `0x${string}`): Promise<void> {
+  const receipt = await getPublicClient().waitForTransactionReceipt({ hash });
+  if (receipt.status !== "success") throw new Error("Claim transaction failed — try again");
+  await syncStoredStatus(id, hash);
+}
+
+async function syncStoredStatus(id: bigint, hash: `0x${string}`): Promise<void> {
+  try {
+    await fetch("/api/claims/status", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ escrowId: id.toString(), transactionHash: hash }),
+    });
+  } catch {
+    // On-chain state is authoritative; a database sync can be retried separately.
+  }
 }

@@ -60,7 +60,7 @@ export function BankPayout(params: { escrowId: bigint; amountMicroAusd: bigint }
       <div className="rounded-2xl border border-primary/40 bg-card p-5 shadow-sm">
         <div className="flex items-center gap-2">
           <Check size={18} className="text-primary" />
-          <p className="text-sm font-bold text-primary">Payout order created</p>
+          <p className="text-sm font-bold text-primary">Demo estimate only</p>
         </div>
         <div className="mt-3 space-y-1.5 text-sm">
           <Row label="Reference" value={order.ref} />
@@ -150,10 +150,10 @@ export function BankPayout(params: { escrowId: bigint; amountMicroAusd: bigint }
         className="mt-4 flex min-h-[52px] w-full items-center justify-center gap-2 rounded-full bg-primary text-base font-semibold text-on-primary disabled:opacity-40"
       >
         {busy && <LoaderCircle size={18} className="animate-spin" />}
-        {busy ? "Creating payout order…" : "Cash out to bank"}
+        {busy ? "Preparing estimate…" : "Preview payout estimate"}
       </button>
       <p className="mt-2 text-center text-[11px] text-muted">
-        Production: paid by a licensed partner (Busha / Yellow Card). Demo shows the exact order they would receive.
+        This is a local estimate only. No payout request is sent and no naira moves.
       </p>
     </div>
   );
