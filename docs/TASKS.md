@@ -21,7 +21,7 @@ Work ONE task at a time: implement → test → review → commit → mark compl
 - [x] TASK-301 Foundry init in `contracts/`, point at Monad testnet + mainnet
 - [x] TASK-302 `SendEscrow.sol` (design per RESEARCH_TECH.md §3 + sketch v3): app generates a 32-byte ephemeral **link key** client-side; `depositTo(linkKey, amount, ttl)` pulls AUSD via SafeERC20; `claim(id, payee, sig)` is **relayer-submitted** — requires the **link key's EIP-712 signature** over `Claim(escrowId, payee)` (recover(sig) == stored linkKey); `cancel(id)` sender-only; `reclaim(id)` for expiry. **Emits Deposited/Claimed/Cancelled/Reclaimed.** Guards: `amount > 0`, `ttl >= 10 min`, `linkKey != 0`, `NoEscrow`. Frozen/paused AUSD reverts atomically (nothing strands).
 - [x] TASK-303 Foundry tests: deposit, claim, cancel, double-claim, wrong-signature claim, reentrancy
-- [ ] TASK-304 Deploy to testnet 10143, verify, run full manual loop
+- [x] TASK-304 Deployed to testnet 10143: SendEscrow at 0x963e40e3cbd3a196b814afcfd4bf39ff1656dc76 (tx 0x7c0ec227…). Deployer 0xdFd3…32B3, sender/relayer 0xc3AB…708F funded (1 MON + 10k AUSD each-side)
 - [ ] TASK-305 Deploy to mainnet 143, verify, pin address in env
 - [ ] TASK-306 (Agora bounty) ERC-3009 gasless sender: `transferWithAuthorization` (EIP-712 domain "Agora Dollar") so the sender needs no MON — or a dedicated demo beat if full path is heavy
 - [ ] TASK-307 Threat-model page + Slither/Aderyn triaged report + Foundry suite per RESEARCH_TECH §8 (unit incl. expiry-boundary, fuzz, solvency invariant, mainnet-fork signature-parity test **+ `fork_Claim_RevertsWhenFrozen_Mock`**)
