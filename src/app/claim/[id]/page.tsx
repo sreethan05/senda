@@ -7,6 +7,7 @@ import { formatUsd } from "@/lib/format";
 import { config } from "@/lib/config";
 import { getPublicClient } from "@/lib/chain/client";
 import { signClaimAuthorization } from "@/lib/chain/linkKey";
+import { BankPayout } from "@/features/claim/BankPayout";
 
 /**
  * Claim page (TASK-501/502/503): opens from a shared link whose FRAGMENT
@@ -51,6 +52,7 @@ export default function ClaimPage() {
   const [error, setError] = useState<string | null>(null);
   const [receipt, setReceipt] = useState<{ seconds: number; txHash: string } | null>(null);
   const [balanceAfter, setBalanceAfter] = useState<string | null>(null);
+  const [showPayout, setShowPayout] = useState(false);
 
   /* eslint-disable react-hooks/set-state-in-effect -- link-key + on-chain read on mount, race-guarded */
   useEffect(() => {
@@ -104,19 +106,27 @@ export default function ClaimPage() {
     setError(null);
     setPhase("busy");
     try {
-      setBusyText("Creating your account with your fingerprint…");
-      const { login, createAccount } = await import("@/lib/chain/mera");
-      const cached = (await import("@/lib/chain/mera")).readCachedAccount();
-      const account = cached !== null ? await login() : await createAccount();
-      if (account.address !== undefined) {
-        // balance read after claim — best effort
+      // Payee account: real users → Mera passkey. Localhost dev → the burner
+      // (lets the full claim + payout flow be tested in a browser quickly).
+      const { isDevBurnerAvailable, getDevBurnerAccount } = await import("@/lib/chain/devWallet");
+      let payeeAddress: `0x${string}`;
+      if (isDevBurnerAvailable()) {
+        const burner = getDevBurnerAccount();
+        payeeAddress = burner.address;
+        setBusyText("Dev mode — claiming to the local burner…");
+      } else {
+        setBusyText("Creating your account with your fingerprint…");
+        const { login, createAccount, readCachedAccount } = await import("@/lib/chain/mera");
+        const cached = readCachedAccount();
+        const account = cached !== null ? await login() : await createAccount();
+        payeeAddress = account.address;
       }
       setBusyText("Authorizing your claim…");
       const started = Date.now();
       const sig = await signClaimAuthorization({
         linkKeyPrivateKeyHex: keyHex,
         escrowId: BigInt(params.id),
-        payee: account.address,
+        payee: payeeAddress,
       });
       setBusyText("Sending — your money is on its way…");
       const res = await fetch("/api/claim", {
@@ -124,7 +134,7 @@ export default function ClaimPage() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           escrowId: params.id,
-          payee: account.address,
+          payee: payeeAddress,
           sig,
           issuedAt: started,
         }),
@@ -136,7 +146,7 @@ export default function ClaimPage() {
       const seconds = (Date.now() - started) / 1000;
       try {
         const { getAusdBalance } = await import("@/lib/chain/ausd");
-        const bal = await getAusdBalance(account.address);
+        const bal = await getAusdBalance(payeeAddress);
         setBalanceAfter(formatUsd(bal));
       } catch {
         setBalanceAfter(null);
@@ -234,6 +244,22 @@ export default function ClaimPage() {
         >
           See it on-chain ↗
         </a>
+        {showPayout ? (
+          <div className="mt-5">
+            <BankPayout
+              escrowId={BigInt(params!.id)}
+              amountMicroAusd={escrow.amount}
+            />
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setShowPayout(true)}
+            className="mt-5 flex min-h-[52px] w-full items-center justify-center rounded-full border border-primary/50 bg-primary/10 text-base font-semibold text-primary active:opacity-80"
+          >
+            Get naira in your bank →
+          </button>
+        )}
         <Link
           href={backTarget}
           className="mt-auto flex min-h-[48px] items-center justify-center text-sm font-semibold text-muted"

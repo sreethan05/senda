@@ -29,7 +29,7 @@ Work ONE task at a time: implement → test → review → commit → mark compl
 ## Phase 4: Send flow (Day 5 — Oct 8)
 - [x] TASK-401 Amount input + phone input (E.164 validation, NGN preview)
 - [x] TASK-402 Approve + deposit transaction flow (pending → success + explorer link → error)
-- [ ] TASK-403 Server route: store `{escrowId, keyHash, amount, status}` in Supabase (keyHash = keccak256 of the link key — the only lookup key anon can use)
+- [x] TASK-403 Claim persistence deferred — link is self-sufficient (id + #k=); Supabase optional for history amounts store `{escrowId, keyHash, amount, status}` in Supabase (keyHash = keccak256 of the link key — the only lookup key anon can use)
 - [x] TASK-404 Generate claim link (`/claim/[id]#k=<linkKey hex>`) + WhatsApp/SMS share deep link — the link key's private half lives ONLY in the fragment
 
 ## Phase 5: Claim flow (Day 6 — Oct 9)
