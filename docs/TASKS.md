@@ -33,9 +33,9 @@ Work ONE task at a time: implement → test → review → commit → mark compl
 - [x] TASK-404 Generate claim link (`/claim/[id]#k=<linkKey hex>`) + WhatsApp/SMS share deep link — the link key's private half lives ONLY in the fragment
 
 ## Phase 5: Claim flow (Day 6 — Oct 9)
-- [ ] TASK-501 Claim landing page from link (amount, sender, big claim button)
-- [ ] TASK-502 Passkey creation at claim time (Mera) for brand-new recipients
-- [ ] TASK-503 Claim flow (relayer-submitted — recipient has zero MON): claim page from link (reads link key from fragment) → Mera passkey creates payee account → app signs `Claim(escrowId, payee)` WITH THE LINK KEY client-side (@noble/secp256k1, no gas) → POST /api/claim → **server relayer wallet** submits `claim(id, payee, sig)` → receipt screen (settlement time, fee, comparison)
+- [x] TASK-501 Claim landing page from link (amount, sender, big claim button)
+- [x] TASK-502 Passkey creation at claim time (Mera) for brand-new recipients
+- [x] TASK-503 Claim flow (relayer-submitted): link-key auth signed client-side, relayer wallet submits via /api/claim (keyed rate limit, on-chain link-key sig verification pre-gas), receipt with settle-time + comparison block
 - [ ] TASK-504 Sender cancel flow + refund receipt
 - [ ] TASK-505 History list with status chips
 - [ ] TASK-506 (Mera bounty) Encrypted remittance note: memo sealed with PRF-derived AES-256-GCM key (Secret Vault format), decryptable only by recipient's passkey; per-corridor salt namespacing (`senda:US->NG`)

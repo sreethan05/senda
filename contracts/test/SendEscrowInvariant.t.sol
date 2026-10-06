@@ -18,6 +18,11 @@ contract EscrowHandler is Test {
     uint256 public ghostPaidOut;
     mapping(address => uint256) public ghostIn;
     mapping(address => uint256) public ghostOut;
+    /// @dev refunds that flowed back to a sender (cancel/reclaim) — the only
+    ///      outflow that can be a "loss" against that sender's own deposits.
+    ///      Claim payouts go to PAYEES (other people's remittances) and are
+    ///      conserved globally by invariant_NoDoublePayout, not per-sender.
+    mapping(address => uint256) public ghostRefunds;
 
     uint256 internal constant SECP256K1_N =
         0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141;
@@ -99,6 +104,7 @@ contract EscrowHandler is Test {
         try escrow.cancel(id) {
             ghostPaidOut += amt;
             ghostOut[s] += amt;
+            ghostRefunds[s] += amt;
         } catch {}
     }
 
@@ -110,6 +116,7 @@ contract EscrowHandler is Test {
         try escrow.reclaim(id) {
             ghostPaidOut += amt;
             ghostOut[s] += amt;
+            ghostRefunds[s] += amt;
         } catch {}
     }
 }
@@ -147,12 +154,15 @@ contract SendEscrowInvariantTest is Test {
         }
     }
 
-    /// @dev No sender withdraws more than they put in.
-    function invariant_SenderNeverLosesMoreThanDeposited() public view {
+    /// @dev No sender is refunded more than they deposited. (Claim payouts to
+    ///      an actor in a PAYEE role are product flow — remittances received —
+    ///      and are conserved globally by invariant_NoDoublePayout; counting
+    ///      them as a per-sender "loss" was a handler modeling bug.)
+    function invariant_SenderNeverRefundedMoreThanDeposited() public view {
         address[] memory actors = new address[](3);
         (actors[0], actors[1], actors[2]) = (handler.actors(0), handler.actors(1), handler.actors(2));
         for (uint256 i = 0; i < actors.length; i++) {
-            assertLe(handler.ghostOut(actors[i]), handler.ghostIn(actors[i]));
+            assertLe(handler.ghostRefunds(actors[i]), handler.ghostIn(actors[i]));
         }
     }
 }

@@ -1,7 +1,7 @@
 # Project Memory
 
 ## Current Status
-Phase 2+3 verified (unit 22/22, fuzz 3/3, invariants running), Phase 4 send flow COMPLETE (TASK-401/402/404): keypad, phone input, cost block, link-key generation, approve+deposit, claim-link share. Claim page + relayer = Phase 5 next. Supabase persistence (TASK-403) deferred until creds exist — link is self-sufficient.
+Phase 2+3 verified (unit 22/22, fuzz 3/3, invariants running), Phase 4 send flow COMPLETE (TASK-401/402/404): keypad, phone input, cost block, link-key generation, approve+deposit, claim-link share. Phase 5 COMPLETE (TASK-501/502/503/307): claim page + /api/claim relayer + invariant suites 3/3 (handler payee-accounting bug found+fixed during run). Supabase persistence (TASK-403) deferred until creds exist — link is self-sufficient.
 Full research phase CLOSED (18 agents total: 6 strategy + 2 feasibility + 4 tech + 6 depth waves). Master strategy in PITCH.md. Build unblocked — Phase 1-2 next.
 
 ## Key strategy facts (Oct 5 waves)
