@@ -47,7 +47,22 @@ const CLAIM_TYPES = {
   ],
 } as const;
 
-const GAS_CLAIM = 200_000n;
+// Monad charges the declared gas limit — estimate from RPC against the real
+// AUSD proxy + escrow, then pad 20% (hardcoded 200k underprovisions the proxy path).
+async function paddedClaimGas(relayer: `0x${string}`, id: bigint, payee: `0x${string}`, sig: `0x${string}`): Promise<bigint> {
+  const { encodeFunctionData } = await import("viem");
+  const data = encodeFunctionData({
+    abi: ESCROW_ABI,
+    functionName: "claim",
+    args: [id, payee, sig],
+  });
+  const estimated = await getPublicClient().estimateGas({
+    account: relayer,
+    to: config.escrowAddress as `0x${string}`,
+    data,
+  });
+  return (estimated * 120n) / 100n;
+}
 
 const rateBuckets = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT = 10;
@@ -184,7 +199,7 @@ export async function POST(request: Request) {
         functionName: "claim",
         args: [id, payeeAddr, sig as `0x${string}`],
       }),
-      gas: GAS_CLAIM,
+      gas: await paddedClaimGas(relayerAccount.address, id, payeeAddr, sig as `0x${string}`),
     });
     return NextResponse.json({ ok: true, txHash: hash });
   } catch (e) {

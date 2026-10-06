@@ -89,7 +89,8 @@ function History() {
             <li key={it.id.toString()} className="rounded-2xl bg-card p-4 shadow-sm">
               <div className="flex items-center justify-between">
                 <p className="font-display text-xl font-bold tabular-nums text-ink">
-                  {formatUsd(it.amount)}
+                  {/* after a claim the contract zeroes the amount — show the moment, not $0 */}
+                  {it.status === "claimed" && it.amount === 0n ? "Claimed ✓" : formatUsd(it.amount)}
                 </p>
                 <span
                   className={`rounded-full px-3 py-1 text-xs font-semibold ${STATUS_STYLES[it.status].cls}`}
