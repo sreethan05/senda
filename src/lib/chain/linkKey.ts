@@ -72,8 +72,14 @@ export async function signClaimAuthorization(params: {
   });
 }
 
-/** keccak256 of the link key hex — the anon-safe Supabase lookup key. */
+/**
+ * keccak256 of the RAW 32 link-key bytes — the anon-safe Supabase lookup key.
+ * NB: the key hex carries no 0x prefix, and viem's toBytes() treats a non-0x
+ * string as UTF-8, so without the prefix this hashes the ASCII text instead of
+ * the key bytes. Use this exact function on BOTH the writer (send) and reader
+ * (claim lookup) sides or the anon query silently misses every row.
+ */
 export async function keyHashFor(privateKeyHex: string): Promise<`0x${string}`> {
   const { keccak256, toBytes } = await import("viem");
-  return keccak256(toBytes(privateKeyHex));
+  return keccak256(toBytes(`0x${privateKeyHex}`));
 }

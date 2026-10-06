@@ -7,6 +7,7 @@ import { formatUsd } from "@/lib/format";
 import { config } from "@/lib/config";
 import { getPublicClient } from "@/lib/chain/client";
 import { signClaimAuthorization } from "@/lib/chain/linkKey";
+import { getEscrowOutcome } from "@/lib/chain/escrow";
 import { BankPayout } from "@/features/claim/BankPayout";
 
 /**
@@ -23,6 +24,7 @@ type Phase =
   | "badLink"
   | "noEscrow"
   | "claimed"
+  | "cancelled"
   | "expired"
   | "ready"
   | "busy"
@@ -79,7 +81,7 @@ export default function ClaimPage() {
         functionName: "escrows",
         args: [id],
       })
-      .then((r) => {
+      .then(async (r) => {
         const [sender, amount, , expiresAt, claimed] = r as readonly [
           `0x${string}`,
           bigint,
@@ -87,10 +89,22 @@ export default function ClaimPage() {
           bigint,
           boolean,
         ];
+        if (/^0x0{40}$/.test(sender)) {
+          setPhase("noEscrow");
+          return;
+        }
         setEscrow({ sender, amount, expiresAt, claimed });
-        if (claimed) setPhase("claimed");
-        else if (expiresAt * 1000n < BigInt(Date.now())) setPhase("expired");
-        else setPhase("ready");
+        if (claimed) {
+          // storage can't tell claim vs cancel vs reclaim apart — read the event
+          const outcome = await getEscrowOutcome(id);
+          setPhase(
+            outcome === "cancelled" ? "cancelled" : outcome === "reclaimed" ? "expired" : "claimed",
+          );
+        } else if (expiresAt * 1000n < BigInt(Date.now())) {
+          setPhase("expired");
+        } else {
+          setPhase("ready");
+        }
       })
       .catch(() => setPhase("noEscrow"));
   }, [params]);
@@ -151,7 +165,6 @@ export default function ClaimPage() {
       } catch {
         setBalanceAfter(null);
       }
-      void keyHex;
       setReceipt({ seconds, txHash: data.txHash });
       setPhase("done");
     } catch (e) {
@@ -164,8 +177,6 @@ export default function ClaimPage() {
       setPhase("ready");
     }
   }
-
-  const backTarget = config.isTestnet ? "/" : "/";
 
   if (phase === "loading") {
     return (
@@ -197,6 +208,16 @@ export default function ClaimPage() {
       <Shell>
         <p className="font-display text-xl font-bold text-ink">Already claimed</p>
         <p className="mt-2 text-sm text-muted">The money in this link has been claimed.</p>
+      </Shell>
+    );
+  }
+  if (phase === "cancelled") {
+    return (
+      <Shell>
+        <p className="font-display text-xl font-bold text-ink">This transfer was cancelled</p>
+        <p className="mt-2 text-sm text-muted">
+          The sender cancelled it and got the money back — ask them to send again.
+        </p>
       </Shell>
     );
   }
@@ -261,7 +282,7 @@ export default function ClaimPage() {
           </button>
         )}
         <Link
-          href={backTarget}
+          href="/"
           className="mt-auto flex min-h-[48px] items-center justify-center text-sm font-semibold text-muted"
         >
           What is senda?
