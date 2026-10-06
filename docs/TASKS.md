@@ -36,8 +36,8 @@ Work ONE task at a time: implement → test → review → commit → mark compl
 - [x] TASK-501 Claim landing page from link (amount, sender, big claim button)
 - [x] TASK-502 Passkey creation at claim time (Mera) for brand-new recipients
 - [x] TASK-503 Claim flow (relayer-submitted): link-key auth signed client-side, relayer wallet submits via /api/claim (keyed rate limit, on-chain link-key sig verification pre-gas), receipt with settle-time + comparison block
-- [ ] TASK-504 Sender cancel flow + refund receipt
-- [ ] TASK-505 History list with status chips
+- [x] TASK-504 Sender cancel flow (refund back to balance, history status flips)
+- [x] TASK-505 History list with status chips (on-chain events, no Supabase needed)
 - [ ] TASK-506 (Mera bounty) Encrypted remittance note: memo sealed with PRF-derived AES-256-GCM key (Secret Vault format), decryptable only by recipient's passkey; per-corridor salt namespacing (`senda:US->NG`)
 
 ## Phase 6: Demo polish (Day 7 — Oct 10)
