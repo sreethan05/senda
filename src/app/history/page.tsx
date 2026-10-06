@@ -17,6 +17,7 @@ const STATUS_STYLES: Record<MyEscrow["status"], { label: string; cls: string }> 
   claimed: { label: "Claimed", cls: "bg-emerald-400/15 text-emerald-300" },
   cancelled: { label: "Cancelled", cls: "bg-line text-muted" },
   expired: { label: "Expired — refundable", cls: "bg-line text-muted" },
+  refunded: { label: "Refunded", cls: "bg-line text-muted" },
 };
 
 function History() {
@@ -89,8 +90,16 @@ function History() {
             <li key={it.id.toString()} className="rounded-2xl bg-card p-4 shadow-sm">
               <div className="flex items-center justify-between">
                 <p className="font-display text-xl font-bold tabular-nums text-ink">
-                  {/* after a claim the contract zeroes the amount — show the moment, not $0 */}
-                  {it.status === "claimed" && it.amount === 0n ? "Claimed ✓" : formatUsd(it.amount)}
+                  {/* every terminal op zeroes the amount — show the outcome, not $0.00 */}
+                  {it.amount > 0n
+                    ? formatUsd(it.amount)
+                    : it.status === "claimed"
+                      ? "Claimed ✓"
+                      : it.status === "cancelled"
+                        ? "Cancelled"
+                        : it.status === "refunded"
+                          ? "Refunded"
+                          : "—"}
                 </p>
                 <span
                   className={`rounded-full px-3 py-1 text-xs font-semibold ${STATUS_STYLES[it.status].cls}`}

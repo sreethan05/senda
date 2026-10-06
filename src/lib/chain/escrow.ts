@@ -1,4 +1,4 @@
-import { decodeEventLog, encodeFunctionData, type WalletClient } from "viem";
+import { decodeEventLog, encodeFunctionData, parseAbiItem, type WalletClient } from "viem";
 import { config, explorerTxUrl } from "@/lib/config";
 import { getPublicClient } from "@/lib/chain/client";
 
@@ -183,20 +183,86 @@ export const escrowReadAbi = [
   },
 ] as const;
 
+/**
+ * Terminal outcomes are NOT recoverable from the struct: claim(), cancel()
+ * and reclaim() all set `claimed = true` and zero the amount, so storage
+ * alone can't tell them apart (v1 mislabelled cancelled/reclaimed as
+ * "claimed"). We read the emitted events instead. Null = getLogs unavailable
+ * (range cap) — callers then fall back to the storage heuristic.
+ */
+export type TerminalOutcome = "claimed" | "cancelled" | "reclaimed";
+
+const TERMINAL_EVENTS = [
+  parseAbiItem(
+    "event Claimed(uint256 indexed escrowId, address indexed payee, uint96 amount, address indexed relayer)",
+  ),
+  parseAbiItem("event Cancelled(uint256 indexed escrowId, address indexed sender, uint96 amount)"),
+  parseAbiItem("event Reclaimed(uint256 indexed escrowId, uint96 amount)"),
+] as const;
+
+/** Log-range windows to try, widest first. A single wide window works on most
+ * RPCs; the narrower fallbacks cover nodes that cap eth_getLogs ranges. */
+async function logWindows(): Promise<Array<{ fromBlock: bigint; toBlock: bigint }>> {
+  const latest = await getPublicClient().getBlockNumber();
+  const at = (span: bigint) => (latest > span ? latest - span : 0n);
+  return [
+    { fromBlock: 0n, toBlock: latest },
+    { fromBlock: at(1_000_000n), toBlock: latest },
+    { fromBlock: at(100_000n), toBlock: latest },
+  ];
+}
+
+function outcomeOf(eventName: string): TerminalOutcome | null {
+  if (eventName === "Claimed") return "claimed";
+  if (eventName === "Cancelled") return "cancelled";
+  if (eventName === "Reclaimed") return "reclaimed";
+  return null;
+}
+
+async function getTerminalOutcomeMap(): Promise<Map<string, TerminalOutcome> | null> {
+  if (!config.escrowAddress) return null;
+  const client = getPublicClient();
+  for (const { fromBlock, toBlock } of await logWindows()) {
+    try {
+      const logs = await client.getLogs({
+        address: config.escrowAddress,
+        events: TERMINAL_EVENTS,
+        fromBlock,
+        toBlock,
+      });
+      const map = new Map<string, TerminalOutcome>();
+      for (const log of logs) {
+        const id = (log.args as unknown as { escrowId?: bigint }).escrowId;
+        const outcome = outcomeOf(log.eventName);
+        if (id !== undefined && outcome !== null) map.set(id.toString(), outcome);
+      }
+      return map;
+    } catch {
+      // range rejected — try a narrower window
+    }
+  }
+  return null;
+}
+
+/** Single-escrow terminal outcome (claim page). null = pending OR unavailable. */
+export async function getEscrowOutcome(id: bigint): Promise<TerminalOutcome | null> {
+  const map = await getTerminalOutcomeMap();
+  return map?.get(id.toString()) ?? null;
+}
+
 export interface MyEscrow {
   id: bigint;
   amount: bigint;
-  /** pending | claimed | cancelled | expired */
-  status: "pending" | "claimed" | "cancelled" | "expired";
+  /** pending | claimed | cancelled | expired | refunded */
+  status: "pending" | "claimed" | "cancelled" | "expired" | "refunded";
   depositTxHash: `0x${string}` | null;
   expiresAt: bigint;
 }
 
 /**
- * History reads: iterate escrow ids 1..nextId and filter by sender. Ids are
- * sequential and small in v1, which sidesteps public-RPC getLogs range caps
- * entirely. (The Deposited events exist for the Envio indexer when volume
- * outgrows this — see RESEARCH_SECURITY.md.)
+ * History reads: iterate escrow ids 1..nextId and filter by sender, then map
+ * each to its terminal outcome from events (falling back to storage if the
+ * RPC won't serve getLogs). Ids are sequential and small in v1.
  */
 export async function getMyEscrows(senderAddress: `0x${string}`): Promise<MyEscrow[]> {
   if (!config.escrowAddress) return [];
@@ -206,9 +272,11 @@ export async function getMyEscrows(senderAddress: `0x${string}`): Promise<MyEscr
     abi: escrowReadAbi,
     functionName: "nextId",
   })) as bigint;
+  const outcomes = await getTerminalOutcomeMap();
 
   const sender = senderAddress.toLowerCase();
   const out: MyEscrow[] = [];
+  const now = BigInt(Math.floor(Date.now() / 1000));
   for (let id = 1n; id <= nextId; id++) {
     const e = (await client.readContract({
       address: config.escrowAddress,
@@ -218,14 +286,19 @@ export async function getMyEscrows(senderAddress: `0x${string}`): Promise<MyEscr
     })) as readonly [`0x${string}`, bigint, `0x${string}`, bigint, boolean];
     const [escSender, amount, , expiresAt, claimed] = e;
     if (escSender.toLowerCase() !== sender) continue;
-    const now = BigInt(Math.floor(Date.now() / 1000));
-    const status = claimed
-      ? ("claimed" as const)
-      : amount === 0n
-        ? ("cancelled" as const)
-        : expiresAt < now
-          ? ("expired" as const)
-          : ("pending" as const);
+    const terminal = outcomes?.get(id.toString());
+    const status: MyEscrow["status"] =
+      terminal === "claimed"
+        ? "claimed"
+        : terminal === "cancelled"
+          ? "cancelled"
+          : terminal === "reclaimed"
+            ? "refunded"
+            : claimed || amount === 0n
+              ? "claimed" // fallback when getLogs is unavailable
+              : expiresAt < now
+                ? "expired"
+                : "pending";
     out.push({ id, amount, status, depositTxHash: null, expiresAt });
   }
   return out.sort((a, b) => (a.id < b.id ? 1 : -1));
