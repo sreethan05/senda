@@ -37,6 +37,7 @@ senda lets a worker abroad send AUSD (Agora's stablecoin) to a phone number. The
 | [docs/RESEARCH_MARKET.md](docs/RESEARCH_MARKET.md) | Market + competitor + field intel |
 | [docs/RESEARCH_JUDGES.md](docs/RESEARCH_JUDGES.md) | Judge-by-judge cheat sheet + sponsor profiles |
 | [docs/RESEARCH_SECURITY.md](docs/RESEARCH_SECURITY.md) | Vulnerability matrix + Foundry test plan |
+| [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md) | Demo + pitch video scripts and shot lists |
 
 ## Status
 
