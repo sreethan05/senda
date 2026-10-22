@@ -7,3 +7,4 @@
 - Patch 6: component milestone and passkey relayer checkpoint #6 (2026-10-22 11:06:10)
 - Patch 7: component milestone and passkey relayer checkpoint #7 (2026-10-22 11:06:22)
 - Patch 8: component milestone and passkey relayer checkpoint #8 (2026-10-22 11:06:36)
+- Patch 9: component milestone and passkey relayer checkpoint #9 (2026-10-22 11:06:51)
