@@ -20,3 +20,4 @@
 - Patch 19: component milestone and passkey relayer checkpoint #19 (2026-10-22 11:09:25)
 - Patch 20: component milestone and passkey relayer checkpoint #20 (2026-10-22 11:09:43)
 - Patch 21: component milestone and passkey relayer checkpoint #21 (2026-10-22 11:10:01)
+- Patch 22: component milestone and passkey relayer checkpoint #22 (2026-10-22 11:10:16)
