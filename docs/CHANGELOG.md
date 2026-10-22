@@ -5,3 +5,4 @@
 - Patch 4: sync protocol definitions and gasless relay telemetry (2026-10-22 11:05:14)
 - Patch 5: sync protocol definitions and gasless relay telemetry (2026-10-22 11:05:28)
 - Patch 6: component milestone and passkey relayer checkpoint #6 (2026-10-22 11:06:10)
+- Patch 7: component milestone and passkey relayer checkpoint #7 (2026-10-22 11:06:22)
